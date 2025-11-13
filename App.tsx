@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from './constants';
 import { BodyPart, PatientInfo, Symptom, AnalysisResult, IntakeData, Prescription, AnalysisRecord } from './types';
-import { CheckIcon, PencilSquareIcon, DocumentTextIcon, HeartIcon, SparklesIcon, BeakerIcon, ClipboardDocumentListIcon, ArrowPathIcon, XMarkIcon, ShieldCheckIcon, UserCircleIcon, HeadBodyIcon, NeckBodyIcon, ChestBodyIcon, BackBodyIcon, PelvisBodyIcon, LimbsBodyIcon, SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, LogoIcon, ArchiveBoxIcon, KeyIcon, Cog6ToothIcon, WifiSlashIcon } from './components/Icons';
+import { CheckIcon, PencilSquareIcon, DocumentTextIcon, HeartIcon, SparklesIcon, BeakerIcon, ClipboardDocumentListIcon, ArrowPathIcon, XMarkIcon, ShieldCheckIcon, UserCircleIcon, HeadBodyIcon, NeckBodyIcon, ChestBodyIcon, BackBodyIcon, PelvisBodyIcon, LimbsBodyIcon, SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, LogoIcon, ArchiveBoxIcon, KeyIcon, Cog6ToothIcon, WifiSlashIcon, TrashIcon } from './components/Icons';
 import { getAnalysis } from './api';
 
 type AppState = 'welcome' | 'intake' | 'loading' | 'results' | 'history';
@@ -418,37 +418,53 @@ const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { in
     );
 };
 
-const HistoryScreen = ({ history, onViewItem, onBack }: { history: AnalysisRecord[]; onViewItem: (record: AnalysisRecord) => void; onBack: () => void; }) => (
+const HistoryScreen = ({ history, onViewItem, onBack, onDeleteItem, onClearAll }: { history: AnalysisRecord[]; onViewItem: (record: AnalysisRecord) => void; onBack: () => void; onDeleteItem: (id: string) => void; onClearAll: () => void; }) => (
     <div className="max-w-4xl mx-auto py-12 px-4">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
             <h1 className="text-3xl font-bold text-white">Analysis History</h1>
-            <button onClick={onBack} className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg text-sm hover:bg-slate-600 transition flex items-center gap-2">
-                Back to Welcome
-            </button>
+            <div className="flex items-center gap-2">
+                 {history.length > 0 && (
+                    <button onClick={onClearAll} className="px-4 py-2 bg-red-800/80 text-white font-semibold rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-2">
+                        <TrashIcon className="w-4 h-4"/> Clear All
+                    </button>
+                )}
+                <button onClick={onBack} className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg text-sm hover:bg-slate-600 transition flex items-center gap-2">
+                    Back to Welcome
+                </button>
+            </div>
         </div>
         {history.length === 0 ? (
-            <p className="text-slate-400 text-center py-10">No history found.</p>
+            <div className="text-center py-16 bg-slate-800/50 border border-slate-700 rounded-2xl">
+                <ArchiveBoxIcon className="w-12 h-12 mx-auto text-slate-500" />
+                <p className="text-slate-400 mt-4">No history found.</p>
+                <p className="text-sm text-slate-500">Completed analyses will appear here.</p>
+            </div>
         ) : (
             <div className="space-y-4">
                 {history.slice().reverse().map(record => (
-                    <button 
+                    <div 
                         key={record.id} 
-                        onClick={() => onViewItem(record)}
-                        className="w-full text-left bg-slate-800/50 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-700 transition-all duration-300 hover:border-indigo-500 hover:bg-slate-800/80 flex justify-between items-center"
+                        className="w-full bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-slate-700 flex justify-between items-center gap-4 group"
                     >
-                        <div>
+                        <button onClick={() => onViewItem(record)} className="flex-grow text-left">
                             <p className="font-bold text-lg text-white">{record.intakeData.patientInfo.name}</p>
                             <p className="text-sm text-slate-400 mt-1">{record.intakeData.symptoms.map(s => s.name).join(', ')}</p>
-                        </div>
-                        <div className="text-right text-sm text-slate-400">
-                            <p>{record.date}</p>
-                        </div>
-                    </button>
+                            <p className="text-xs text-slate-500 mt-2">{record.date}</p>
+                        </button>
+                        <button 
+                            onClick={() => onDeleteItem(record.id)} 
+                            className="p-2 rounded-full text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition"
+                            aria-label="Delete record"
+                        >
+                            <TrashIcon className="w-5 h-5"/>
+                        </button>
+                    </div>
                 ))}
             </div>
         )}
     </div>
 );
+
 
 const ResultsScreen = ({ intakeData, result, onStartNew }: { intakeData: IntakeData; result: AnalysisResult; onStartNew: () => void }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('summary');
@@ -703,6 +719,21 @@ export default function App() {
         setAppState('results');
     };
 
+    const handleDeleteHistoryItem = (id: string) => {
+        if (window.confirm("Are you sure you want to delete this record?")) {
+            const updatedHistory = history.filter(item => item.id !== id);
+            setHistory(updatedHistory);
+            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedHistory));
+        }
+    };
+
+    const handleClearAllHistory = () => {
+        if (window.confirm("Are you sure you want to delete all history records? This action cannot be undone.")) {
+            setHistory([]);
+            localStorage.removeItem(HISTORY_STORAGE_KEY);
+        }
+    };
+
     const renderContent = () => {
         switch(appState) {
             case 'welcome':
@@ -718,7 +749,7 @@ export default function App() {
                 setAppState('intake');
                 return null;
             case 'history':
-                return <HistoryScreen history={history} onViewItem={handleViewHistoryItem} onBack={handleStartNew} />;
+                return <HistoryScreen history={history} onViewItem={handleViewHistoryItem} onBack={handleStartNew} onDeleteItem={handleDeleteHistoryItem} onClearAll={handleClearAllHistory} />;
             default:
                 return <WelcomeScreen onStart={handleStart} onViewHistory={handleViewHistory} historyCount={history.length}/>
         }

@@ -124,7 +124,6 @@ async function getLiveAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
             },
         });
 
-        // Add a more robust check for safety blocks or empty responses.
         if (!response.candidates || response.candidates.length === 0 || response.candidates[0].finishReason === 'SAFETY') {
             const reason = response.candidates?.[0]?.finishReason || 'No response';
             console.error(`AI response blocked or empty. Reason: ${reason}`, response);
@@ -140,31 +139,38 @@ async function getLiveAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
         
         let jsonText = rawResponseText.trim();
 
-        // More robustly strip markdown fences if they exist.
-        if (jsonText.startsWith("```json")) {
-            jsonText = jsonText.slice(7, -3).trim();
-        } else if (jsonText.startsWith("```")) {
-             jsonText = jsonText.slice(3, -3).trim();
+        // Robustly find the JSON object within the response text.
+        const jsonStartIndex = jsonText.indexOf('{');
+        const jsonEndIndex = jsonText.lastIndexOf('}');
+
+        if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+            jsonText = jsonText.substring(jsonStartIndex, jsonEndIndex + 1);
+        } else {
+            console.error("Could not find a valid JSON object in the AI response.", rawResponseText);
+            throw new Error("Failed to get analysis from AI. The model returned a non-JSON response.");
         }
 
-        // The final attempt to parse the cleaned text.
-        const result = JSON.parse(jsonText) as AnalysisResult;
-        return result;
+        try {
+            const result = JSON.parse(jsonText) as AnalysisResult;
+            return result;
+        } catch (parseError) {
+            console.error("Failed to parse the extracted JSON:", parseError);
+            console.error("Extracted text that failed parsing:", jsonText);
+            throw new Error("Failed to get analysis from AI. The model returned an invalid JSON structure.");
+        }
 
     } catch (e: any) {
-        // Log the raw response for any error, which is extremely helpful for debugging.
-        console.error("Error processing AI response:", e);
         if (rawResponseText) {
-            console.error("Raw AI response that caused the error:", rawResponseText);
+            console.error("Raw AI response that may have caused the error:", rawResponseText);
         }
-
-        // Propagate specific, user-friendly error messages that we've defined above.
-        if (e.message.includes("API key") || e.message.includes("blocked") || e.message.includes("empty response")) {
+        // Propagate user-friendly error messages.
+        if (e.message.includes("API key") || e.message.includes("blocked") || e.message.includes("empty response") || e.message.includes("non-JSON") || e.message.includes("invalid JSON")) {
             throw e;
         }
         
-        // This is the generic fallback for JSON parsing errors or other unexpected issues.
-        throw new Error("Failed to get analysis from AI. The model returned an invalid response. Check the developer console for more details.");
+        // Generic fallback.
+        console.error("An unexpected error occurred during AI analysis:", e);
+        throw new Error("An unknown error occurred while analyzing. Please check the console for details.");
     }
 }
 
