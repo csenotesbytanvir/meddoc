@@ -163,17 +163,17 @@ const WelcomeScreen = ({ onStart, onViewHistory, historyCount }: { onStart: () =
                 An educational tool to explore symptoms and generate example prescriptions. This is a demonstration and not for medical use.
             </p>
             <div className="flex flex-col items-center justify-center space-y-6">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
                     <button
                         onClick={onStart}
-                        className="bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-indigo-500 transition-all duration-300 shadow-lg shadow-indigo-600/30 transform hover:scale-105 animate-pulse-button"
+                        className="bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-indigo-500 transition-all duration-300 shadow-lg shadow-indigo-600/30 transform hover:scale-105 animate-pulse-button w-full sm:w-auto"
                     >
                         Start New Intake
                     </button>
                     {historyCount > 0 && (
                         <button
                             onClick={onViewHistory}
-                            className="bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg hover:bg-slate-600 transition-all duration-300 shadow-lg flex items-center gap-2"
+                            className="bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg hover:bg-slate-600 transition-all duration-300 shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto"
                         >
                             <ArchiveBoxIcon className="w-5 h-5" /> View History ({historyCount})
                         </button>
@@ -257,7 +257,7 @@ const IntakeForm = ({ onAnalyze, error, setError }: { onAnalyze: (data: IntakeDa
                             <label className="block text-sm font-medium text-slate-300 mb-2">Patient Full Name</label>
                             <input type="text" value={patientInfo.name} onChange={e => setPatientInfo({...patientInfo, name: e.target.value})} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"/>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                              <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-2">Age</label>
                                 <input type="number" value={patientInfo.age} onChange={e => setPatientInfo({...patientInfo, age: e.target.value})} className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"/>
@@ -281,8 +281,8 @@ const IntakeForm = ({ onAnalyze, error, setError }: { onAnalyze: (data: IntakeDa
                         <p className="text-slate-300 font-medium mb-4">1. Select Primary Affected Body Part</p>
                         <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
                             {(Object.keys(SYMPTOM_DATA) as BodyPart[]).map(part => (
-                                <button key={part} onClick={() => handleBodyPartChange(part)} className={`p-4 rounded-lg text-sm text-center font-semibold transition-all duration-200 border-2 flex flex-col items-center justify-center h-28 ${primaryBodyPart === part ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500'}`}>
-                                    {React.cloneElement(bodyPartIcons[part], { className: "w-8 h-8 mx-auto mb-2" })}
+                                <button key={part} onClick={() => handleBodyPartChange(part)} className={`p-2 sm:p-4 rounded-lg text-xs sm:text-sm text-center font-semibold transition-all duration-200 border-2 flex flex-col items-center justify-center h-24 sm:h-28 ${primaryBodyPart === part ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500'}`}>
+                                    {React.cloneElement(bodyPartIcons[part], { className: "w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2" })}
                                     <span>{part}</span>
                                 </button>
                             ))}
@@ -366,7 +366,7 @@ const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { in
                             <h3 className="text-xl font-semibold text-white border-b border-slate-700 pb-2 mb-4 flex items-center gap-3">
                                 <UserCircleIcon className="w-6 h-6 text-indigo-400" /> Patient Information
                             </h3>
-                            <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 sm:gap-y-0 sm:gap-x-4 text-sm">
                                 <div><span className="font-semibold text-slate-400">Name:</span> {intakeData.patientInfo.name}</div>
                                 <div><span className="font-semibold text-slate-400">Age:</span> {intakeData.patientInfo.age}</div>
                                 <div><span className="font-semibold text-slate-400">Gender:</span> {intakeData.patientInfo.gender}</div>
@@ -481,7 +481,7 @@ const ResultsScreen = ({ intakeData, result, onStartNew }: { intakeData: IntakeD
                 </div>
                 
                 <div className="mt-6 bg-slate-800/50 backdrop-blur-sm p-2 rounded-xl shadow-lg border border-slate-700">
-                    <div className="flex space-x-1">
+                    <div className="flex flex-wrap gap-1">
                         {tabs.map(tab => (
                             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 px-3 py-2.5 text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2 ${activeTab === tab.id ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'}`}>
                                 {React.cloneElement(tab.icon, { className: `w-5 h-5 transition-transform ${activeTab === tab.id ? 'scale-110' : ''} ${activeTab === tab.id && tab.id === 'lifestyle' ? 'animate-heartbeat' : ''}` })}
@@ -491,7 +491,7 @@ const ResultsScreen = ({ intakeData, result, onStartNew }: { intakeData: IntakeD
                     </div>
                     <div className="mt-2 p-6 min-h-[300px]">
                         {activeTab === 'summary' && (
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-6 text-slate-200 animate-fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 text-slate-200 animate-fade-in">
                                 <div className="col-span-2 sm:col-span-1"><strong>Patient Name:</strong><p className="text-lg text-white">{intakeData.patientInfo.name}</p></div>
                                 <div className="col-span-2 sm:col-span-1"><strong>Age:</strong><p className="text-lg text-white">{intakeData.patientInfo.age}</p></div>
                                 <div className="col-span-2 sm:col-span-1"><strong>Gender:</strong><p className="text-lg text-white">{intakeData.patientInfo.gender}</p></div>
@@ -558,7 +558,7 @@ const Stepper = ({ currentStep }: { currentStep: 'intake' | 'analysis' }) => {
                         <p className="text-xs text-slate-400">Patient & Symptoms</p>
                     </div>
                 </div>
-                <div className="flex-1 h-0.5 bg-slate-600 mx-6"></div>
+                <div className="flex-1 h-0.5 bg-slate-600 mx-3 sm:mx-6"></div>
                 <div className={`flex items-center ${isAnalysisDone ? 'text-indigo-400' : 'text-slate-400'}`}>
                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${isAnalysisDone ? 'bg-indigo-500/20 border-indigo-500' : 'border-slate-600'}`}>
                         {isAnalysisDone ? <CheckIcon className="w-5 h-5" /> : <BeakerIcon className="w-5 h-5" />}
