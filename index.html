@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF--8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MedDoc Prescriber</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        @keyframes blink-caret {
+            from, to { background-size: 0 0; }
+            50% { background-size: .4em 3px; } /* Controls the width and thickness of the underscore cursor */
+        }
+        .animate-typing {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            letter-spacing: .1em;
+            padding-right: .4em; /* Makes space for the cursor */
+
+            /* The cursor, created with a background image that sticks to the right edge */
+            background-image: linear-gradient(orange, orange);
+            background-repeat: no-repeat;
+            background-position: 100% 90%; /* Position: right edge, near the bottom */
+            
+            animation: 
+                typing 3.5s steps(28, end),
+                blink-caret .75s step-end infinite;
+        }
+
+        @keyframes pulse-button {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+            }
+        }
+        .animate-pulse-button {
+            animation: pulse-button 2s infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        .animate-heartbeat {
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        .animate-scale-in {
+            animation: scaleIn 0.3s ease-out forwards;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai"
+  }
+}
+</script>
+</head>
+<body class="bg-[#0B1120]">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>

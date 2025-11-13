@@ -1,0 +1,5 @@
+{
+  "name": "MedDoc Prescriber",
+  "description": "An educational tool to explore symptoms and generate example prescriptions. This is a demonstration and not for medical use.",
+  "requestFramePermissions": []
+}
