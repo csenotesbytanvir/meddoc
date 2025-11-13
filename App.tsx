@@ -1,70 +1,98 @@
 
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY } from './constants';
+import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from './constants';
 import { BodyPart, PatientInfo, Symptom, AnalysisResult, IntakeData, Prescription, AnalysisRecord } from './types';
-import { CheckIcon, PencilSquareIcon, DocumentTextIcon, HeartIcon, SparklesIcon, BeakerIcon, ClipboardDocumentListIcon, ArrowPathIcon, XMarkIcon, ShieldCheckIcon, UserCircleIcon, HeadBodyIcon, NeckBodyIcon, ChestBodyIcon, BackBodyIcon, PelvisBodyIcon, LimbsBodyIcon, SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, LogoIcon, ArchiveBoxIcon, KeyIcon, Cog6ToothIcon } from './components/Icons';
-import { getAIAnalysis } from './api';
+import { CheckIcon, PencilSquareIcon, DocumentTextIcon, HeartIcon, SparklesIcon, BeakerIcon, ClipboardDocumentListIcon, ArrowPathIcon, XMarkIcon, ShieldCheckIcon, UserCircleIcon, HeadBodyIcon, NeckBodyIcon, ChestBodyIcon, BackBodyIcon, PelvisBodyIcon, LimbsBodyIcon, SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, LogoIcon, ArchiveBoxIcon, KeyIcon, Cog6ToothIcon, WifiSlashIcon } from './components/Icons';
+import { getAnalysis } from './api';
 
 type AppState = 'welcome' | 'intake' | 'loading' | 'results' | 'history';
 type ActiveTab = 'summary' | 'conditions' | 'prescription' | 'lifestyle';
+type AppMode = 'live' | 'mock';
 
-const ApiKeyModal = ({ onSave, initialKey, error }: { onSave: (key: string) => void; initialKey?: string | null; error?: string | null }) => {
+
+const SettingsModal = ({ onSaveApiKey, initialKey, apiKeyError, currentMode, onModeChange, onClose }: { onSaveApiKey: (key: string) => void; initialKey?: string | null; apiKeyError?: string | null; currentMode: AppMode; onModeChange: (mode: AppMode) => void; onClose: () => void; }) => {
     const [apiKey, setApiKey] = useState(initialKey || '');
 
     const handleSave = () => {
         if (apiKey.trim()) {
-            onSave(apiKey.trim());
+            onSaveApiKey(apiKey.trim());
         }
     };
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-            <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full text-slate-300 animate-scale-in">
+            <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full text-slate-300 animate-scale-in relative">
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                    <XMarkIcon className="w-7 h-7" />
+                </button>
                 <div className="p-8 space-y-6">
                     <div className="flex items-center gap-4">
                         <div className="bg-indigo-500/10 p-3 rounded-full border border-indigo-500/50">
-                            <KeyIcon className="w-6 h-6 text-indigo-400" />
+                            <Cog6ToothIcon className="w-6 h-6 text-indigo-400" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Set Your Gemini API Key</h2>
-                            <p className="text-sm text-slate-400">An API key is required to use the AI features.</p>
+                            <h2 className="text-xl font-bold text-white">Settings</h2>
+                            <p className="text-sm text-slate-400">Configure application settings.</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className="block text-sm font-medium text-slate-300">Analysis Mode</label>
+                        <div className="flex rounded-lg bg-slate-700/50 p-1 border border-slate-600">
+                             <button onClick={() => onModeChange('live')} className={`w-1/2 py-2 text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition ${currentMode === 'live' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
+                                <SparklesIcon className="w-5 h-5"/> Live AI
+                            </button>
+                            <button onClick={() => onModeChange('mock')} className={`w-1/2 py-2 text-sm font-semibold rounded-md flex items-center justify-center gap-2 transition ${currentMode === 'mock' ? 'bg-slate-900 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
+                                <WifiSlashIcon className="w-5 h-5"/> Offline Mock
+                            </button>
                         </div>
                     </div>
                     
-                    {error && (
+                    {apiKeyError && currentMode === 'live' && (
                         <div className="bg-red-900/50 border border-red-600 text-red-200 px-4 py-3 rounded-lg flex items-center gap-3 text-sm animate-fade-in">
                             <InfoIcon className="w-6 h-6 flex-shrink-0"/>
-                            <span>{error}</span>
+                            <span>{apiKeyError}</span>
                         </div>
                     )}
 
-                    <div>
-                        <label htmlFor="apiKeyInput" className="block text-sm font-medium text-slate-300 mb-2">
-                            Gemini API Key
-                        </label>
-                        <input 
-                            id="apiKeyInput"
-                            type="password" 
-                            value={apiKey} 
-                            onChange={e => setApiKey(e.target.value)} 
-                            placeholder="Enter your API key here"
-                            className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                        />
-                         <p className="text-xs text-slate-500 mt-2">
-                            You can get a free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Google AI Studio</a>. 
-                            Your key is saved only in your browser's local storage.
-                        </p>
-                    </div>
+                    {currentMode === 'live' && (
+                        <div className="animate-fade-in">
+                            <label htmlFor="apiKeyInput" className="block text-sm font-medium text-slate-300 mb-2">
+                                Gemini API Key
+                            </label>
+                            <input 
+                                id="apiKeyInput"
+                                type="password" 
+                                value={apiKey} 
+                                onChange={e => setApiKey(e.target.value)} 
+                                placeholder="Enter your API key here"
+                                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                            />
+                            <p className="text-xs text-slate-500 mt-2">
+                                You can get a free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Google AI Studio</a>. 
+                                Your key is saved only in your browser's local storage.
+                            </p>
+                        </div>
+                    )}
 
-                    <div className="flex justify-end">
-                        <button 
-                            onClick={handleSave} 
-                            disabled={!apiKey.trim()}
-                            className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-indigo-500 transition-all duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed"
-                        >
-                            Save and Continue
-                        </button>
+                    <div className="flex justify-end pt-2">
+                        {currentMode === 'live' ? (
+                            <button 
+                                onClick={handleSave} 
+                                disabled={!apiKey.trim()}
+                                className="bg-indigo-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-indigo-500 transition-all duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed"
+                            >
+                                Save Key
+                            </button>
+                        ) : (
+                             <button 
+                                onClick={onClose} 
+                                className="bg-slate-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-slate-500 transition-all duration-300"
+                            >
+                                Close
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -287,7 +315,7 @@ const IntakeForm = ({ onAnalyze, error, setError }: { onAnalyze: (data: IntakeDa
 const LoadingScreen = () => (
     <div className="flex flex-col items-center justify-center min-h-screen text-center">
         <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-indigo-500"></div>
-        <p className="text-white text-xl mt-6 font-semibold">Analyzing Symptoms with AI...</p>
+        <p className="text-white text-xl mt-6 font-semibold">Analyzing Symptoms...</p>
         <p className="text-slate-400 mt-2">Please wait while we process the information.</p>
     </div>
 );
@@ -570,13 +598,19 @@ export default function App() {
     const [error, setError] = useState<string | null>(null);
     const [apiKeyError, setApiKeyError] = useState<string | null>(null);
     const [history, setHistory] = useState<AnalysisRecord[]>([]);
-    const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [appMode, setAppMode] = useState<AppMode>('live');
 
     useEffect(() => {
-        // Check for API key on initial load
-        if (!localStorage.getItem(API_KEY_STORAGE_KEY)) {
+        // Load app mode
+        const storedMode = localStorage.getItem(APP_MODE_STORAGE_KEY);
+        const currentMode: AppMode = (storedMode === 'mock' || storedMode === 'live') ? storedMode : 'live';
+        setAppMode(currentMode);
+
+        // Check for API key on initial load only if in live mode
+        if (currentMode === 'live' && !localStorage.getItem(API_KEY_STORAGE_KEY)) {
             setApiKeyError(null);
-            setIsApiKeyModalOpen(true);
+            setIsSettingsModalOpen(true);
         }
 
         // Load history from local storage
@@ -593,9 +627,21 @@ export default function App() {
 
     const handleSaveApiKey = (key: string) => {
         localStorage.setItem(API_KEY_STORAGE_KEY, key);
-        setIsApiKeyModalOpen(false);
-        setError(null); // Clear any previous "key not found" errors
+        setIsSettingsModalOpen(false);
+        setError(null);
         setApiKeyError(null);
+    };
+
+    const handleModeChange = (mode: AppMode) => {
+        setAppMode(mode);
+        localStorage.setItem(APP_MODE_STORAGE_KEY, mode);
+        if (mode === 'live' && !localStorage.getItem(API_KEY_STORAGE_KEY)) {
+            setIsSettingsModalOpen(true);
+            setApiKeyError(null);
+        } else {
+             // Close modal if switching to mock or if key exists for live
+            setIsSettingsModalOpen(false);
+        }
     };
 
     const handleAnalyze = async (data: IntakeData) => {
@@ -603,7 +649,7 @@ export default function App() {
         setAppState('loading');
         setError(null);
         try {
-            const result = await getAIAnalysis(data);
+            const result = await getAnalysis(data);
             setAnalysisResult(result);
 
             const newRecord: AnalysisRecord = {
@@ -622,13 +668,11 @@ export default function App() {
         } catch (e: any) {
             const errorMessage = e.message || 'An unknown error occurred. Please try again.';
             
-            if (errorMessage.includes("API key")) {
-                // If the error from the API is about the key, show the modal with the specific error.
+            if (appMode === 'live' && errorMessage.includes("API key")) {
                 setApiKeyError(`API Key Error: ${errorMessage}. Please enter a valid key.`);
-                setIsApiKeyModalOpen(true);
-                setError(null); // Don't show the generic error banner
+                setIsSettingsModalOpen(true);
+                setError(null);
             } else {
-                // For other errors, show the generic error banner.
                 setError(errorMessage);
             }
             setAppState('intake');
@@ -643,9 +687,9 @@ export default function App() {
     };
     
     const handleStart = () => {
-        if (!localStorage.getItem(API_KEY_STORAGE_KEY)) {
-            setApiKeyError(null); // Ensure no error message on first open
-            setIsApiKeyModalOpen(true);
+        if (appMode === 'live' && !localStorage.getItem(API_KEY_STORAGE_KEY)) {
+            setApiKeyError(null);
+            setIsSettingsModalOpen(true);
         } else {
             setAppState('intake');
         }
@@ -671,7 +715,6 @@ export default function App() {
                 if (analysisResult && intakeData) {
                     return <ResultsScreen intakeData={intakeData} result={analysisResult} onStartNew={handleStartNew} />;
                 }
-                // Fallback to intake if data is missing
                 setAppState('intake');
                 return null;
             case 'history':
@@ -681,6 +724,23 @@ export default function App() {
         }
     };
 
+    const ModeIndicator = () => {
+        if (appMode === 'mock') {
+            return (
+                <div className="flex items-center gap-2 text-sm text-amber-300 bg-amber-900/50 border border-amber-700 px-3 py-1 rounded-full">
+                    <WifiSlashIcon className="w-4 h-4" />
+                    Offline Mock Mode
+                </div>
+            );
+        }
+        return (
+            <div className="flex items-center gap-2 text-sm text-green-300 bg-green-900/50 border border-green-700 px-3 py-1 rounded-full">
+                <SparklesIcon className="w-4 h-4" />
+                Live AI Mode
+            </div>
+        );
+    };
+
     return (
         <div className="min-h-screen text-white bg-cover bg-center bg-fixed" style={{backgroundImage: "url('https://images.unsplash.com/photo-1584515933487-779824d29309?q=80&w=2070&auto=format&fit=crop')"}}>
             <div className="min-h-screen bg-[#0B1120]/90 backdrop-blur-sm flex flex-col">
@@ -688,9 +748,10 @@ export default function App() {
                     <div className="max-w-7xl mx-auto flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <LogoIcon className="w-8 h-8 text-indigo-400" />
-                            <h1 className="text-xl font-bold">MedDoc Prescriber</h1>
+                            <h1 className="text-xl font-bold hidden sm:block">MedDoc Prescriber</h1>
                         </div>
-                         <button onClick={() => setIsApiKeyModalOpen(true)} className="p-2 rounded-full text-slate-400 hover:bg-slate-700/50 hover:text-white transition" aria-label="Settings">
+                        <ModeIndicator />
+                         <button onClick={() => setIsSettingsModalOpen(true)} className="p-2 rounded-full text-slate-400 hover:bg-slate-700/50 hover:text-white transition" aria-label="Settings">
                             <Cog6ToothIcon className="w-6 h-6"/>
                         </button>
                     </div>
@@ -699,7 +760,7 @@ export default function App() {
                     {renderContent()}
                 </main>
                 <AppFooter />
-                {isApiKeyModalOpen && <ApiKeyModal onSave={handleSaveApiKey} initialKey={localStorage.getItem(API_KEY_STORAGE_KEY)} error={apiKeyError} />}
+                {isSettingsModalOpen && <SettingsModal onSaveApiKey={handleSaveApiKey} initialKey={localStorage.getItem(API_KEY_STORAGE_KEY)} apiKeyError={apiKeyError} currentMode={appMode} onModeChange={handleModeChange} onClose={() => setIsSettingsModalOpen(false)} />}
             </div>
         </div>
     );

@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { IntakeData, AnalysisResult } from './types';
-import { API_KEY_STORAGE_KEY } from "./constants";
+import { API_KEY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from "./constants";
 
 function getGenAIClient(): GoogleGenAI {
     const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
@@ -110,8 +110,8 @@ IMPORTANT: Your entire response must be ONLY the raw JSON object, without any su
 `;
 }
 
-export async function getAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
-    let rawResponseText: string | null = null; // Variable to hold the raw text for logging
+async function getLiveAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
+    let rawResponseText: string | null = null;
     try {
         const ai = getGenAIClient();
         const response = await ai.models.generateContent({
@@ -124,11 +124,9 @@ export async function getAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
             },
         });
 
-        rawResponseText = response.text; // Store raw text for potential error logging
+        rawResponseText = response.text;
         let jsonText = rawResponseText.trim();
 
-        // The API with responseMimeType: "application/json" should return clean JSON.
-        // However, if the model includes markdown, we can try to extract it.
         const jsonMatch = jsonText.match(/```json\n([\s\S]*?)\n```/);
         if (jsonMatch && jsonMatch[1]) {
             jsonText = jsonMatch[1];
@@ -138,19 +136,73 @@ export async function getAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
         return result;
     } catch (e) {
         console.error("Error processing AI response:", e);
-        // Log the raw response if available, this is crucial for debugging!
         if (rawResponseText) {
             console.error("Raw AI response that caused the error:", rawResponseText);
         }
 
         if (e instanceof Error) {
-            // Re-throw the original error if it's API key related to be handled by the UI
             if (e.message.includes("API key")) {
                 throw e;
             }
         }
         
-        // Provide a more informative error message that hints at checking the console.
         throw new Error("Failed to get analysis from AI. The model returned an invalid response. Check the developer console for more details.");
     }
+}
+
+// MOCK DATA IMPLEMENTATION
+const mockData: Record<string, AnalysisResult> = {
+    'Head': {
+        conditions: [
+            { name: "Tension Headache", description: "This is a common type of headache that feels like a constant ache or pressure around the head, especially at the temples or back of the head and neck." },
+            { name: "Sinus Congestion", description: "This occurs when the nasal passages become swollen with excess mucus, often leading to a feeling of pressure in the face." }
+        ],
+        prescriptions: [
+            { name: "Ibuprofen 200 mg", dosage: "1-2 tablets", form: "Tablet", route: "Oral", frequency: "Every 4-6 hours as needed", purpose: "Pain and inflammation relief", description: "Educational example: A common over-the-counter pain reliever. Consult a clinician before use." },
+            { name: "Saline Nasal Spray", dosage: "1-2 sprays per nostril", form: "Spray", route: "Nasal", frequency: "As needed", purpose: "To relieve nasal congestion", description: "Educational example: Helps to moisturize nasal passages and clear mucus. Consult a clinician before use." }
+        ],
+        lifestyleAdvice: [
+            { id: "la_1", text: "Stay hydrated by drinking plenty of water throughout the day." },
+            { id: "la_2", text: "Rest in a quiet, dark room to help alleviate headache symptoms." },
+            { id: "la_3", text: "Apply a warm compress to your face to help ease sinus pressure." },
+            { id: "la_4", text: "Avoid known headache triggers such as excessive caffeine or strong smells." }
+        ]
+    },
+    'default': {
+        conditions: [
+            { name: "General Malaise", description: "A feeling of general discomfort, illness, or lack of well-being. It's a common symptom for many minor conditions." },
+            { name: "Muscular Strain", description: "This can occur from overexertion or minor injury, leading to localized pain and discomfort in muscles." }
+        ],
+        prescriptions: [
+            { name: "Paracetamol 500 mg", dosage: "1-2 tablets", form: "Tablet", route: "Oral", frequency: "Every 4-6 hours as needed", purpose: "Fever and pain reduction", description: "Educational example: A widely used over-the-counter analgesic. Consult a clinician before use." }
+        ],
+        lifestyleAdvice: [
+            { id: "la_1", text: "Ensure you get adequate rest and sleep to help your body recover." },
+            { id: "la_2", text: "Eat a balanced diet rich in fruits and vegetables." },
+            { id: "la_3", text: "Engage in light physical activity, such as walking, if you feel up to it." }
+        ]
+    }
+};
+
+function getMockAnalysis(data: IntakeData): Promise<AnalysisResult> {
+    console.log("Using Offline Mock Analysis");
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const resultTemplate = mockData[data.primaryBodyPart] || mockData['default'];
+            // Deep copy to avoid mutating the original mock data object
+            const result = JSON.parse(JSON.stringify(resultTemplate));
+            
+            // Personalize the response slightly for demonstration
+            result.conditions[0].description = `An educational mock example for ${data.patientInfo.name}. ${result.conditions[0].description}`;
+            resolve(result);
+        }, 1200); // Simulate network/processing delay
+    });
+}
+
+export async function getAnalysis(data: IntakeData): Promise<AnalysisResult> {
+    const mode = localStorage.getItem(APP_MODE_STORAGE_KEY) || 'live';
+    if (mode === 'mock') {
+        return getMockAnalysis(data);
+    }
+    return getLiveAIAnalysis(data);
 }

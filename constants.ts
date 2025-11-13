@@ -2,6 +2,7 @@ import { BodyPart, Symptom } from './types';
 
 export const API_KEY_STORAGE_KEY = 'gemini_api_key';
 export const HISTORY_STORAGE_KEY = 'meddoc_prescriber_history';
+export const APP_MODE_STORAGE_KEY = 'meddoc_app_mode';
 
 export const SYMPTOM_DATA: Record<BodyPart, Symptom[]> = {
     'Head': [
