@@ -124,31 +124,50 @@ async function getLiveAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
             },
         });
 
-        rawResponseText = response.text;
-        let jsonText = rawResponseText.trim();
-
-        const jsonMatch = jsonText.match(/```json\n([\s\S]*?)\n```/);
-        if (jsonMatch && jsonMatch[1]) {
-            jsonText = jsonMatch[1];
+        // Add a more robust check for safety blocks or empty responses.
+        if (!response.candidates || response.candidates.length === 0 || response.candidates[0].finishReason === 'SAFETY') {
+            const reason = response.candidates?.[0]?.finishReason || 'No response';
+            console.error(`AI response blocked or empty. Reason: ${reason}`, response);
+            throw new Error("Analysis failed because the AI's response was blocked, possibly for safety reasons. This can occur with medical topics. Please adjust the symptoms and try again.");
         }
 
+        rawResponseText = response.text;
+
+        if (!rawResponseText || rawResponseText.trim() === '') {
+            console.error("Raw AI response was empty.");
+            throw new Error("Failed to get analysis from AI. The model returned an empty response.");
+        }
+        
+        let jsonText = rawResponseText.trim();
+
+        // More robustly strip markdown fences if they exist.
+        if (jsonText.startsWith("```json")) {
+            jsonText = jsonText.slice(7, -3).trim();
+        } else if (jsonText.startsWith("```")) {
+             jsonText = jsonText.slice(3, -3).trim();
+        }
+
+        // The final attempt to parse the cleaned text.
         const result = JSON.parse(jsonText) as AnalysisResult;
         return result;
-    } catch (e) {
+
+    } catch (e: any) {
+        // Log the raw response for any error, which is extremely helpful for debugging.
         console.error("Error processing AI response:", e);
         if (rawResponseText) {
             console.error("Raw AI response that caused the error:", rawResponseText);
         }
 
-        if (e instanceof Error) {
-            if (e.message.includes("API key")) {
-                throw e;
-            }
+        // Propagate specific, user-friendly error messages that we've defined above.
+        if (e.message.includes("API key") || e.message.includes("blocked") || e.message.includes("empty response")) {
+            throw e;
         }
         
+        // This is the generic fallback for JSON parsing errors or other unexpected issues.
         throw new Error("Failed to get analysis from AI. The model returned an invalid response. Check the developer console for more details.");
     }
 }
+
 
 // MOCK DATA IMPLEMENTATION
 const mockData: Record<string, AnalysisResult> = {
