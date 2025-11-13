@@ -105,10 +105,13 @@ Please generate an educational analysis based on this data. The output must be a
 - For 'prescriptions', provide 1-2 common generic or over-the-counter example medications. The description for each MUST include a disclaimer like "Educational example. Consult a clinician before use."
 - For 'lifestyleAdvice', provide 3-4 simple, helpful tips.
 This is for a tool called 'MedDoc Prescriber' and is for educational demonstration ONLY. Do not provide a real diagnosis or medical advice.
+
+IMPORTANT: Your entire response must be ONLY the raw JSON object, without any surrounding text, explanations, or markdown formatting like \`\`\`json.
 `;
 }
 
 export async function getAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
+    let rawResponseText: string | null = null; // Variable to hold the raw text for logging
     try {
         const ai = getGenAIClient();
         const response = await ai.models.generateContent({
@@ -120,17 +123,34 @@ export async function getAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
                 responseSchema: analysisSchema
             },
         });
-        const jsonText = response.text.trim();
+
+        rawResponseText = response.text; // Store raw text for potential error logging
+        let jsonText = rawResponseText.trim();
+
+        // The API with responseMimeType: "application/json" should return clean JSON.
+        // However, if the model includes markdown, we can try to extract it.
+        const jsonMatch = jsonText.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch && jsonMatch[1]) {
+            jsonText = jsonMatch[1];
+        }
+
         const result = JSON.parse(jsonText) as AnalysisResult;
         return result;
     } catch (e) {
-        console.error("Error calling Gemini API:", e);
+        console.error("Error processing AI response:", e);
+        // Log the raw response if available, this is crucial for debugging!
+        if (rawResponseText) {
+            console.error("Raw AI response that caused the error:", rawResponseText);
+        }
+
         if (e instanceof Error) {
             // Re-throw the original error if it's API key related to be handled by the UI
             if (e.message.includes("API key")) {
                 throw e;
             }
         }
-        throw new Error("Failed to get analysis from AI. The model may have returned an invalid response. Please try again.");
+        
+        // Provide a more informative error message that hints at checking the console.
+        throw new Error("Failed to get analysis from AI. The model returned an invalid response. Check the developer console for more details.");
     }
 }
