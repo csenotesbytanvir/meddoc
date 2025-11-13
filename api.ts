@@ -184,10 +184,13 @@ async function getLiveAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
         }
     }
 
-    // If all retries fail, throw the last captured error.
+    // If all retries fail, throw the last captured error with more specific user-facing messages.
     console.error("All AI analysis attempts failed. Last error:", lastError);
     if (lastError) {
-        // Provide a more user-friendly message, but keep the original error for context.
+        const errorMessage = lastError.message.toLowerCase();
+        if (errorMessage.includes('503') || errorMessage.includes('model is overloaded') || errorMessage.includes('unavailable')) {
+            throw new Error("The AI model is currently experiencing high traffic. Please try again in a few moments.");
+        }
         throw new Error(`Analysis failed after multiple attempts. The AI model's response was not in the expected format or a network error occurred. (Details: ${lastError.message})`);
     }
     
