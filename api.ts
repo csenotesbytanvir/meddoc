@@ -111,67 +111,88 @@ IMPORTANT: Your entire response must be ONLY the raw JSON object, without any su
 }
 
 async function getLiveAIAnalysis(data: IntakeData): Promise<AnalysisResult> {
-    let rawResponseText: string | null = null;
-    try {
-        const ai = getGenAIClient();
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: buildPrompt(data),
-            config: {
-                systemInstruction: "You are an AI assistant for 'MedDoc Prescriber', an educational tool. Your role is to generate example medical data for demonstration purposes only. All information you provide must be clearly marked and understood as non-clinical, educational examples. DO NOT provide real medical advice. Based on the user's input of symptoms, you will generate a plausible set of potential conditions, example prescriptions (using generic names), and general lifestyle advice. Your output must strictly conform to the provided JSON schema.",
-                responseMimeType: "application/json",
-                responseSchema: analysisSchema
-            },
-        });
+    const MAX_RETRIES = 3;
+    let lastError: Error | null = null;
 
-        if (!response.candidates || response.candidates.length === 0 || response.candidates[0].finishReason === 'SAFETY') {
-            const reason = response.candidates?.[0]?.finishReason || 'No response';
-            console.error(`AI response blocked or empty. Reason: ${reason}`, response);
-            throw new Error("Analysis failed because the AI's response was blocked, possibly for safety reasons. This can occur with medical topics. Please adjust the symptoms and try again.");
-        }
-
-        rawResponseText = response.text;
-
-        if (!rawResponseText || rawResponseText.trim() === '') {
-            console.error("Raw AI response was empty.");
-            throw new Error("Failed to get analysis from AI. The model returned an empty response.");
-        }
-        
-        let jsonText = rawResponseText.trim();
-
-        // Robustly find the JSON object within the response text.
-        const jsonStartIndex = jsonText.indexOf('{');
-        const jsonEndIndex = jsonText.lastIndexOf('}');
-
-        if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
-            jsonText = jsonText.substring(jsonStartIndex, jsonEndIndex + 1);
-        } else {
-            console.error("Could not find a valid JSON object in the AI response.", rawResponseText);
-            throw new Error("Failed to get analysis from AI. The model returned a non-JSON response.");
-        }
-
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            const result = JSON.parse(jsonText) as AnalysisResult;
-            return result;
-        } catch (parseError) {
-            console.error("Failed to parse the extracted JSON:", parseError);
-            console.error("Extracted text that failed parsing:", jsonText);
-            throw new Error("Failed to get analysis from AI. The model returned an invalid JSON structure.");
-        }
+            console.log(`AI Analysis Attempt #${attempt}`);
+            const ai = getGenAIClient();
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: buildPrompt(data),
+                config: {
+                    systemInstruction: "You are an AI assistant for 'MedDoc Prescriber', an educational tool. Your role is to generate example medical data for demonstration purposes only. All information you provide must be clearly marked and understood as non-clinical, educational examples. DO NOT provide real medical advice. Based on the user's input of symptoms, you will generate a plausible set of potential conditions, example prescriptions (using generic names), and general lifestyle advice. Your output must strictly conform to the provided JSON schema.",
+                    responseMimeType: "application/json",
+                    responseSchema: analysisSchema
+                },
+            });
 
-    } catch (e: any) {
-        if (rawResponseText) {
-            console.error("Raw AI response that may have caused the error:", rawResponseText);
+            if (!response.candidates || response.candidates.length === 0) {
+                throw new Error("The AI returned no response content.");
+            }
+            
+            const candidate = response.candidates[0];
+
+            if (candidate.finishReason && candidate.finishReason !== 'STOP' && candidate.finishReason !== 'MAX_TOKENS') {
+                const reason = candidate.finishReason;
+                console.error(`AI response stopped for an unexpected reason: ${reason}`, response);
+                if (reason === 'SAFETY') {
+                    throw new Error("Analysis failed because the AI's response was blocked for safety reasons. This can occur with medical topics. Please adjust the symptoms and try again.");
+                }
+                throw new Error(`The model stopped unexpectedly (Reason: ${reason}).`);
+            }
+
+            const rawResponseText = response.text;
+
+            if (!rawResponseText || rawResponseText.trim() === '') {
+                throw new Error("The model returned an empty response.");
+            }
+            
+            // Attempt to parse the response, with robust fallback for cleaning.
+            try {
+                // First, try a direct parse. This should work in the ideal case.
+                return JSON.parse(rawResponseText) as AnalysisResult;
+            } catch (e) {
+                console.warn(`Direct JSON parse failed. Attempting to extract from markdown/text block.`);
+                // If direct parse fails, try to extract from a markdown block or find the main JSON object.
+                const jsonMatch = rawResponseText.match(/```(?:json)?\s*([\s\S]*?)\s*```|({[\s\S]*})/);
+                if (jsonMatch) {
+                    const extractedJson = jsonMatch[1] || jsonMatch[2];
+                    if (extractedJson) {
+                        // If we found a block, try parsing that.
+                        return JSON.parse(extractedJson) as AnalysisResult;
+                    }
+                }
+                // If we couldn't find or parse a block, throw to be caught by the outer catch.
+                throw new Error("Returned data is not a valid JSON structure.");
+            }
+
+        } catch (e: any) {
+            lastError = e;
+            console.error(`Attempt ${attempt} failed:`, e.message);
+
+            // Do not retry for specific, non-recoverable errors
+            if (e.message.includes("API key") || e.message.includes("blocked for safety reasons")) {
+                throw e; // Throw immediately
+            }
+
+            if (attempt < MAX_RETRIES) {
+                // Wait before retrying
+                await new Promise(res => setTimeout(res, 1000 * attempt));
+            }
         }
-        // Propagate user-friendly error messages.
-        if (e.message.includes("API key") || e.message.includes("blocked") || e.message.includes("empty response") || e.message.includes("non-JSON") || e.message.includes("invalid JSON")) {
-            throw e;
-        }
-        
-        // Generic fallback.
-        console.error("An unexpected error occurred during AI analysis:", e);
-        throw new Error("An unknown error occurred while analyzing. Please check the console for details.");
     }
+
+    // If all retries fail, throw the last captured error.
+    console.error("All AI analysis attempts failed. Last error:", lastError);
+    if (lastError) {
+        // Provide a more user-friendly message, but keep the original error for context.
+        throw new Error(`Analysis failed after multiple attempts. The AI model's response was not in the expected format or a network error occurred. (Details: ${lastError.message})`);
+    }
+    
+    // Fallback error if no specific error was captured.
+    throw new Error("An unknown error occurred while analyzing symptoms after multiple retries. Please check your network and try again.");
 }
 
 
@@ -214,13 +235,11 @@ function getMockAnalysis(data: IntakeData): Promise<AnalysisResult> {
     return new Promise(resolve => {
         setTimeout(() => {
             const resultTemplate = mockData[data.primaryBodyPart] || mockData['default'];
-            // Deep copy to avoid mutating the original mock data object
             const result = JSON.parse(JSON.stringify(resultTemplate));
             
-            // Personalize the response slightly for demonstration
             result.conditions[0].description = `An educational mock example for ${data.patientInfo.name}. ${result.conditions[0].description}`;
             resolve(result);
-        }, 1200); // Simulate network/processing delay
+        }, 1200);
     });
 }
 
