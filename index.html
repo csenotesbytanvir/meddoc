@@ -88,6 +88,10 @@
                 color: black;
                 background: white;
                 font-size: 12px;
+                /* FIX: Ensure the modal content is not clipped when printing */
+                height: auto !important;
+                max-height: none !important;
+                overflow-y: visible !important;
             }
             .printable-prescription h2 {
               font-size: 24px;

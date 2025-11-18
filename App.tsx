@@ -1,9 +1,9 @@
 
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from './constants';
 import { BodyPart, PatientInfo, Symptom, AnalysisResult, IntakeData, Prescription, AnalysisRecord } from './types';
-import { CheckIcon, PencilSquareIcon, DocumentTextIcon, HeartIcon, SparklesIcon, BeakerIcon, ClipboardDocumentListIcon, ArrowPathIcon, XMarkIcon, ShieldCheckIcon, UserCircleIcon, HeadBodyIcon, NeckBodyIcon, ChestBodyIcon, BackBodyIcon, PelvisBodyIcon, LimbsBodyIcon, SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, LogoIcon, ArchiveBoxIcon, KeyIcon, Cog6ToothIcon, WifiSlashIcon, TrashIcon } from './components/Icons';
+import { CheckIcon, PencilSquareIcon, DocumentTextIcon, HeartIcon, SparklesIcon, BeakerIcon, ClipboardDocumentListIcon, ArrowPathIcon, XMarkIcon, ShieldCheckIcon, UserCircleIcon, HeadBodyIcon, NeckBodyIcon, ChestBodyIcon, BackBodyIcon, PelvisBodyIcon, LimbsBodyIcon, SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, LogoIcon, ArchiveBoxIcon, KeyIcon, Cog6ToothIcon, WifiSlashIcon, TrashIcon, MagnifyingGlassIcon } from './components/Icons';
 import { getAnalysis } from './api';
 
 type AppState = 'welcome' | 'intake' | 'loading' | 'results' | 'history';
@@ -440,61 +440,112 @@ const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { in
     );
 };
 
-const HistoryScreen = ({ history, onViewItem, onBack, onDeleteItem, onEditItem, onClearAll }: { history: AnalysisRecord[]; onViewItem: (record: AnalysisRecord) => void; onBack: () => void; onDeleteItem: (id: string) => void; onEditItem: (record: AnalysisRecord) => void; onClearAll: () => void; }) => (
-    <div className="max-w-4xl mx-auto py-12 px-4">
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-            <h1 className="text-3xl font-bold text-white">Analysis History</h1>
-            <div className="flex items-center gap-2">
-                 {history.length > 0 && (
-                    <button onClick={onClearAll} className="px-4 py-2 bg-red-800/80 text-white font-semibold rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-2">
-                        <TrashIcon className="w-4 h-4"/> Clear All
-                    </button>
-                )}
-                <button onClick={onBack} className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg text-sm hover:bg-slate-600 transition flex items-center gap-2">
-                    Back to Welcome
-                </button>
-            </div>
-        </div>
-        {history.length === 0 ? (
-            <div className="text-center py-16 bg-slate-800/50 border border-slate-700 rounded-2xl">
-                <ArchiveBoxIcon className="w-12 h-12 mx-auto text-slate-500" />
-                <p className="text-slate-400 mt-4">No history found.</p>
-                <p className="text-sm text-slate-500">Completed analyses will appear here.</p>
-            </div>
-        ) : (
-            <div className="space-y-4">
-                {history.slice().reverse().map(record => (
-                    <div 
-                        key={record.id} 
-                        className="w-full bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-slate-700 flex justify-between items-center gap-4 group"
-                    >
-                        <button onClick={() => onViewItem(record)} className="flex-grow text-left">
-                            <p className="font-bold text-lg text-white">{record.intakeData.patientInfo.name}</p>
-                            <p className="text-sm text-slate-400 mt-1">{record.intakeData.symptoms.map(s => s.name).join(', ')}</p>
-                            <p className="text-xs text-slate-500 mt-2">{record.date}</p>
+const HistoryScreen = ({ history, onViewItem, onBack, onDeleteItem, onEditItem, onClearAll }: { history: AnalysisRecord[]; onViewItem: (record: AnalysisRecord) => void; onBack: () => void; onDeleteItem: (id: string) => void; onEditItem: (record: AnalysisRecord) => void; onClearAll: () => void; }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortOption, setSortOption] = useState<'date-desc' | 'date-asc' | 'name-az'>('date-desc');
+
+    const filteredAndSortedHistory = useMemo(() => {
+        return history
+            .filter(record => 
+                record.intakeData.patientInfo.name.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .sort((a, b) => {
+                switch (sortOption) {
+                    case 'date-asc':
+                        return new Date(a.id).getTime() - new Date(b.id).getTime();
+                    case 'name-az':
+                        return a.intakeData.patientInfo.name.localeCompare(b.intakeData.patientInfo.name);
+                    case 'date-desc':
+                    default:
+                        return new Date(b.id).getTime() - new Date(a.id).getTime();
+                }
+            });
+    }, [history, searchTerm, sortOption]);
+
+    return (
+        <div className="max-w-4xl mx-auto py-12 px-4">
+            <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+                <h1 className="text-3xl font-bold text-white">Analysis History</h1>
+                <div className="flex items-center gap-2">
+                    {history.length > 0 && (
+                        <button onClick={onClearAll} className="px-4 py-2 bg-red-800/80 text-white font-semibold rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-2">
+                            <TrashIcon className="w-4 h-4"/> Clear All
                         </button>
-                        <div className="flex items-center gap-1">
-                            <button 
-                                onClick={() => onEditItem(record)} 
-                                className="p-2 rounded-full text-slate-500 hover:bg-indigo-900/50 hover:text-indigo-400 transition"
-                                aria-label="Edit record"
-                            >
-                                <PencilSquareIcon className="w-5 h-5"/>
-                            </button>
-                            <button 
-                                onClick={() => onDeleteItem(record.id)} 
-                                className="p-2 rounded-full text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition"
-                                aria-label="Delete record"
-                            >
-                                <TrashIcon className="w-5 h-5"/>
-                            </button>
-                        </div>
-                    </div>
-                ))}
+                    )}
+                    <button onClick={onBack} className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg text-sm hover:bg-slate-600 transition flex items-center gap-2">
+                        Back to Welcome
+                    </button>
+                </div>
             </div>
-        )}
-    </div>
-);
+
+            {history.length > 0 && (
+                 <div className="mb-6 p-4 bg-slate-800/50 border border-slate-700 rounded-xl flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="relative w-full sm:flex-1">
+                        <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 absolute top-1/2 left-3 transform -translate-y-1/2" />
+                        <input 
+                            type="text"
+                            placeholder="Search by patient name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-slate-400">Sort by:</span>
+                        <button onClick={() => setSortOption('date-desc')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${sortOption === 'date-desc' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>Newest</button>
+                        <button onClick={() => setSortOption('date-asc')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${sortOption === 'date-asc' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>Oldest</button>
+                        <button onClick={() => setSortOption('name-az')} className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${sortOption === 'name-az' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>Name (A-Z)</button>
+                    </div>
+                </div>
+            )}
+
+            {history.length === 0 ? (
+                <div className="text-center py-16 bg-slate-800/50 border border-slate-700 rounded-2xl">
+                    <ArchiveBoxIcon className="w-12 h-12 mx-auto text-slate-500" />
+                    <p className="text-slate-400 mt-4">No history found.</p>
+                    <p className="text-sm text-slate-500">Completed analyses will appear here.</p>
+                </div>
+            ) : filteredAndSortedHistory.length === 0 ? (
+                <div className="text-center py-16 bg-slate-800/50 border border-slate-700 rounded-2xl">
+                    <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-500" />
+                    <p className="text-slate-400 mt-4">No results found for "{searchTerm}"</p>
+                    <p className="text-sm text-slate-500">Try searching for a different name.</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {filteredAndSortedHistory.map(record => (
+                        <div 
+                            key={record.id} 
+                            className="w-full bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-slate-700 flex justify-between items-center gap-4 group"
+                        >
+                            <button onClick={() => onViewItem(record)} className="flex-grow text-left">
+                                <p className="font-bold text-lg text-white">{record.intakeData.patientInfo.name}</p>
+                                <p className="text-sm text-slate-400 mt-1">{record.intakeData.symptoms.map(s => s.name).join(', ')}</p>
+                                <p className="text-xs text-slate-500 mt-2">{record.date}</p>
+                            </button>
+                            <div className="flex items-center gap-1">
+                                <button 
+                                    onClick={() => onEditItem(record)} 
+                                    className="p-2 rounded-full text-slate-500 hover:bg-indigo-900/50 hover:text-indigo-400 transition"
+                                    aria-label="Edit record"
+                                >
+                                    <PencilSquareIcon className="w-5 h-5"/>
+                                </button>
+                                <button 
+                                    onClick={() => onDeleteItem(record.id)} 
+                                    className="p-2 rounded-full text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition"
+                                    aria-label="Delete record"
+                                >
+                                    <TrashIcon className="w-5 h-5"/>
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 
 const ResultsScreen = ({ intakeData, result, onStartNew }: { intakeData: IntakeData; result: AnalysisResult; onStartNew: () => void }) => {
