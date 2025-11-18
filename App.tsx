@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from './constants';
 import { BodyPart, PatientInfo, Symptom, AnalysisResult, IntakeData, Prescription, AnalysisRecord } from './types';
-import { CheckIcon, PencilSquareIcon, DocumentTextIcon, HeartIcon, SparklesIcon, BeakerIcon, ClipboardDocumentListIcon, ArrowPathIcon, XMarkIcon, ShieldCheckIcon, UserCircleIcon, HeadBodyIcon, NeckBodyIcon, ChestBodyIcon, BackBodyIcon, PelvisBodyIcon, LimbsBodyIcon, SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, LogoIcon, ArchiveBoxIcon, KeyIcon, Cog6ToothIcon, WifiSlashIcon, TrashIcon, MagnifyingGlassIcon } from './components/Icons';
+import { CheckIcon, PencilSquareIcon, DocumentTextIcon, HeartIcon, SparklesIcon, BeakerIcon, ClipboardDocumentListIcon, ArrowPathIcon, XMarkIcon, ShieldCheckIcon, UserCircleIcon, HeadBodyIcon, NeckBodyIcon, ChestBodyIcon, BackBodyIcon, PelvisBodyIcon, LimbsBodyIcon, SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, LogoIcon, ArchiveBoxIcon, KeyIcon, Cog6ToothIcon, WifiSlashIcon, TrashIcon, MagnifyingGlassIcon, ChartBarIcon } from './components/Icons';
 import { getAnalysis } from './api';
 
-type AppState = 'welcome' | 'intake' | 'loading' | 'results' | 'history';
+type AppState = 'welcome' | 'intake' | 'loading' | 'results' | 'history' | 'analytics';
 type ActiveTab = 'summary' | 'conditions' | 'prescription' | 'lifestyle';
 type AppMode = 'live' | 'mock';
 
@@ -149,7 +149,7 @@ const AboutModal = ({ onClose }: { onClose: () => void }) => (
 );
 
 
-const WelcomeScreen = ({ onStart, onViewHistory, historyCount }: { onStart: () => void; onViewHistory: () => void; historyCount: number; }) => {
+const WelcomeScreen = ({ onStart, onViewHistory, onViewAnalytics, historyCount }: { onStart: () => void; onViewHistory: () => void; onViewAnalytics: () => void; historyCount: number; }) => {
     const [showAbout, setShowAbout] = useState(false);
     return(
     <>
@@ -171,12 +171,20 @@ const WelcomeScreen = ({ onStart, onViewHistory, historyCount }: { onStart: () =
                         Start New Intake
                     </button>
                     {historyCount > 0 && (
+                        <>
+                        <button
+                            onClick={onViewAnalytics}
+                            className="bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-teal-500 transition-all duration-300 shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto"
+                        >
+                            <ChartBarIcon className="w-5 h-5" /> Analytics
+                        </button>
                         <button
                             onClick={onViewHistory}
                             className="bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg hover:bg-slate-600 transition-all duration-300 shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto"
                         >
-                            <ArchiveBoxIcon className="w-5 h-5" /> View History ({historyCount})
+                            <ArchiveBoxIcon className="w-5 h-5" /> History ({historyCount})
                         </button>
+                        </>
                     )}
                 </div>
                  <p className="text-sm text-slate-400 animate-typing">Built by Code_For_Humanity</p>
@@ -335,7 +343,6 @@ const LoadingScreen = () => (
     </div>
 );
 
-// FIX: Changed to React.FC to correctly handle the `key` prop when mapping.
 const PrescriptionItem: React.FC<{ p: Prescription, safetyMode: boolean }> = ({ p, safetyMode }) => (
     <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
         <div className="flex items-baseline gap-3">
@@ -358,7 +365,7 @@ const PrescriptionItem: React.FC<{ p: Prescription, safetyMode: boolean }> = ({ 
 
 const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { intakeData: IntakeData; result: AnalysisResult; safetyMode: boolean; onClose: () => void; }) => {
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in no-print">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in modal-overlay">
             <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative text-slate-200 animate-scale-in printable-prescription">
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition no-print">
                     <XMarkIcon className="w-7 h-7" />
@@ -372,7 +379,7 @@ const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { in
                         <div className="text-right text-sm">
                             <p className="font-semibold">Dr. Tanvir</p>
                             <p>BMDC-DEMO-001</p>
-                            <p>Date: November 13, 2025</p>
+                            <p>Date: November 18, 2025</p>
                         </div>
                     </div>
 
@@ -593,7 +600,7 @@ const ResultsScreen = ({ intakeData, result, onStartNew }: { intakeData: IntakeD
                                 <div className="col-span-2 sm:col-span-1"><strong>Patient Name:</strong><p className="text-lg text-white">{intakeData.patientInfo.name}</p></div>
                                 <div className="col-span-2 sm:col-span-1"><strong>Age:</strong><p className="text-lg text-white">{intakeData.patientInfo.age}</p></div>
                                 <div className="col-span-2 sm:col-span-1"><strong>Gender:</strong><p className="text-lg text-white">{intakeData.patientInfo.gender}</p></div>
-                                <div className="col-span-2 sm:col-span-1"><strong>Date:</strong><p className="text-lg text-white">November 13, 2025</p></div>
+                                <div className="col-span-2 sm:col-span-1"><strong>Date:</strong><p className="text-lg text-white">November 18, 2025</p></div>
                                 <div className="col-span-2"><strong>Symptoms Presented:</strong><p className="text-lg text-white">{intakeData.symptoms.map(s => s.name).join(', ')} (in {intakeData.primaryBodyPart})</p></div>
                             </div>
                         )}
@@ -671,12 +678,108 @@ const Stepper = ({ currentStep }: { currentStep: 'intake' | 'analysis' }) => {
     );
 };
 
-// FIX: Made children optional to handle cases where Card might be used without children, resolving the TS error.
 const Card = ({ children }: { children?: React.ReactNode }) => (
     <div className="bg-slate-800/50 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-slate-700 transition-all duration-300 hover:border-slate-600 hover:shadow-indigo-500/10">
         {children}
     </div>
 );
+
+const AnalyticsScreen = ({ history, onBack }: { history: AnalysisRecord[]; onBack: () => void; }) => {
+    const stats = useMemo(() => {
+        if (history.length === 0) return null;
+
+        const totalAnalyses = history.length;
+        
+        const bodyPartCounts = history.reduce((acc, record) => {
+            const part = record.intakeData.primaryBodyPart;
+            acc[part] = (acc[part] || 0) + 1;
+            return acc;
+        }, {} as Record<BodyPart, number>);
+
+        const sortedBodyParts = Object.entries(bodyPartCounts)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5);
+
+        const symptomCounts = history.flatMap(r => r.intakeData.symptoms).reduce((acc, symptom) => {
+            acc[symptom.name] = (acc[symptom.name] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const sortedSymptoms = Object.entries(symptomCounts)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5);
+        
+        return {
+            totalAnalyses,
+            sortedBodyParts,
+            sortedSymptoms
+        };
+    }, [history]);
+    
+    if (!stats) {
+        return (
+            <div className="max-w-4xl mx-auto py-12 px-4 text-center">
+                 <ChartBarIcon className="w-16 h-16 mx-auto text-slate-500" />
+                 <h1 className="text-3xl font-bold text-white mt-4">No Data for Analytics</h1>
+                 <p className="text-slate-400 mt-2">Complete an analysis to start seeing insights here.</p>
+                 <button onClick={onBack} className="mt-6 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-500 transition">Go Back</button>
+            </div>
+        );
+    }
+
+    const SimpleBarChart = ({ data, title }: { data: [string, number][]; title: string }) => {
+        const maxValue = Math.max(...data.map(([, value]) => value), 1); // Avoid division by zero
+        return (
+            <div>
+                <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
+                <div className="space-y-3">
+                    {data.map(([label, value]) => (
+                        <div key={label} className="grid grid-cols-3 gap-2 items-center text-sm">
+                            <span className="text-slate-300 truncate">{label}</span>
+                            <div className="col-span-2 bg-slate-700/50 rounded-full h-6 flex items-center">
+                                <div 
+                                    className="bg-indigo-500 h-6 rounded-full flex items-center justify-end px-2 text-white font-bold"
+                                    style={{ width: `${(value / maxValue) * 100}%`, minWidth: '24px' }}
+                                >
+                                    {value}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="max-w-5xl mx-auto py-12 px-4 animate-fade-in">
+             <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+                <h1 className="text-3xl font-bold text-white flex items-center gap-3"><ChartBarIcon className="w-8 h-8 text-indigo-400" /> Analytics Dashboard</h1>
+                <button onClick={onBack} className="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg text-sm hover:bg-slate-600 transition">Back to Welcome</button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <Card>
+                    <h3 className="text-slate-400 text-sm font-medium">Total Analyses</h3>
+                    <p className="text-5xl font-bold text-white mt-2">{stats.totalAnalyses}</p>
+                </Card>
+                <Card>
+                    <h3 className="text-slate-400 text-sm font-medium">Most Common Area</h3>
+                    <p className="text-3xl font-bold text-white mt-2 truncate">{stats.sortedBodyParts[0]?.[0] || 'N/A'}</p>
+                </Card>
+                 <Card>
+                    <h3 className="text-slate-400 text-sm font-medium">Most Frequent Symptom</h3>
+                    <p className="text-3xl font-bold text-white mt-2 truncate">{stats.sortedSymptoms[0]?.[0] || 'N/A'}</p>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card><SimpleBarChart data={stats.sortedBodyParts} title="Top 5 Body Parts" /></Card>
+                <Card><SimpleBarChart data={stats.sortedSymptoms} title="Top 5 Symptoms" /></Card>
+            </div>
+        </div>
+    );
+};
 
 const AppFooter = () => (
     <footer className="w-full p-4 bg-transparent mt-auto">
@@ -811,6 +914,8 @@ export default function App() {
     };
 
     const handleViewHistory = () => setAppState('history');
+    const handleViewAnalytics = () => setAppState('analytics');
+
 
     const handleViewHistoryItem = (record: AnalysisRecord) => {
         setIntakeData(record.intakeData);
@@ -846,7 +951,7 @@ export default function App() {
     const renderContent = () => {
         switch(appState) {
             case 'welcome':
-                return <WelcomeScreen onStart={handleStart} onViewHistory={handleViewHistory} historyCount={history.length}/>
+                return <WelcomeScreen onStart={handleStart} onViewHistory={handleViewHistory} onViewAnalytics={handleViewAnalytics} historyCount={history.length}/>
             case 'intake':
                 return <IntakeForm 
                     onAnalyze={handleAnalyze} 
@@ -866,8 +971,10 @@ export default function App() {
                 return null;
             case 'history':
                 return <HistoryScreen history={history} onViewItem={handleViewHistoryItem} onBack={handleStartNew} onDeleteItem={handleDeleteHistoryItem} onEditItem={handleEditHistoryItem} onClearAll={handleClearAllHistory} />;
+            case 'analytics':
+                 return <AnalyticsScreen history={history} onBack={handleStartNew} />;
             default:
-                return <WelcomeScreen onStart={handleStart} onViewHistory={handleViewHistory} historyCount={history.length}/>
+                return <WelcomeScreen onStart={handleStart} onViewHistory={handleViewHistory} onViewAnalytics={handleViewAnalytics} historyCount={history.length}/>
         }
     };
 

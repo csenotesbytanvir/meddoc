@@ -73,8 +73,20 @@
             body * {
                 visibility: hidden;
             }
-            .printable-prescription, .printable-prescription * {
+            /* Make the modal overlay and its printable content visible */
+            .modal-overlay,
+            .printable-prescription, 
+            .printable-prescription * {
                 visibility: visible;
+            }
+             /* Reset overlay styles for printing to hide background and centering */
+            .modal-overlay {
+                position: static !important;
+                background: transparent !important;
+                backdrop-filter: none !important;
+                display: block !important;
+                padding: 0 !important;
+                overflow: visible !important;
             }
             .printable-prescription {
                 position: absolute;
