@@ -70,7 +70,11 @@
         }
 
         @media print {
-            /* Reset body and html for clean printing */
+            @page {
+                size: A4;
+                margin: 1in;
+            }
+
             html, body {
                 margin: 0 !important;
                 padding: 0 !important;
@@ -82,41 +86,40 @@
                 visibility: hidden;
             }
 
-            /* Make the modal wrapper and its content visible */
-            .modal-overlay,
-            .printable-prescription, 
-            .printable-prescription * {
+            /* Make the modal overlay and its content visible */
+            .modal-overlay, .printable-prescription, .printable-prescription * {
                 visibility: visible;
             }
-
-            /* Reset the overlay to be a simple container that doesn't affect layout */
+            
+            /* Reposition the overlay to act as a simple container */
             .modal-overlay {
                 position: static !important;
+                display: block !important;
                 background: none !important;
                 backdrop-filter: none !important;
-                display: block !important;
                 padding: 0 !important;
-                overflow: visible !important;
+                margin: 0 !important;
                 width: 100% !important;
                 height: auto !important;
+                overflow: visible !important;
             }
-
-            /* Style the printable content to look like a document */
+            
+            /* Make the printable content the only thing in the flow */
             .printable-prescription {
                 position: static !important;
-                width: 100%;
-                margin: 0;
-                padding: 1in; /* Use standard print margins */
-                border: none;
-                box-shadow: none;
-                color: black;
-                background: white;
-                font-size: 11pt; /* Use points for print font size */
+                width: auto !important; /* Let it be defined by page margins */
                 height: auto !important;
                 max-height: none !important;
-                overflow: visible !important;
-                box-sizing: border-box; /* Ensure padding is included in width */
+                overflow: visible !important; /* Ensure content is not clipped */
+                margin: 0 !important;
+                padding: 0 !important; /* Page margins are handled by @page */
+                border: none !important;
+                box-shadow: none !important;
+                background: white !important;
+                color: black !important;
+                font-size: 11pt;
             }
+            
             .printable-prescription h2 {
               font-size: 20pt;
             }
