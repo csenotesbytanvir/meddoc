@@ -162,16 +162,9 @@ const WelcomeScreen = ({ onStart, onViewHistory, onViewAnalytics, historyCount }
             <p className="text-slate-300 mb-6 max-w-md mx-auto">
                 An educational tool to explore symptoms and generate example prescriptions. This is a demonstration and not for medical use.
             </p>
-            <div className="flex flex-col items-center justify-center space-y-6">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-                    <button
-                        onClick={onStart}
-                        className="bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-indigo-500 transition-all duration-300 shadow-lg shadow-indigo-600/30 transform hover:scale-105 animate-pulse-button w-full sm:w-auto"
-                    >
-                        Start New Intake
-                    </button>
-                    {historyCount > 0 && (
-                        <>
+            <div className="flex flex-col items-center justify-center space-y-4">
+                {historyCount > 0 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full mb-2">
                         <button
                             onClick={onViewAnalytics}
                             className="bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-teal-500 transition-all duration-300 shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto"
@@ -184,10 +177,15 @@ const WelcomeScreen = ({ onStart, onViewHistory, onViewAnalytics, historyCount }
                         >
                             <ArchiveBoxIcon className="w-5 h-5" /> History ({historyCount})
                         </button>
-                        </>
-                    )}
-                </div>
-                 <p className="text-sm text-slate-400 animate-typing">Built by Code_For_Humanity</p>
+                    </div>
+                )}
+                <button
+                    onClick={onStart}
+                    className="bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-indigo-500 transition-all duration-300 shadow-lg shadow-indigo-600/30 transform hover:scale-105 animate-pulse-button w-full sm:w-auto"
+                >
+                    Start New Intake
+                </button>
+                <p className="text-sm text-slate-400 animate-typing pt-2">Built by Code_For_Humanity</p>
                 <button 
                     onClick={() => setShowAbout(true)}
                     className="text-indigo-400 hover:text-indigo-300 text-sm font-semibold flex items-center gap-2"
