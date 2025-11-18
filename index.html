@@ -68,6 +68,60 @@
         .animate-scale-in {
             animation: scaleIn 0.3s ease-out forwards;
         }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .printable-prescription, .printable-prescription * {
+                visibility: visible;
+            }
+            .printable-prescription {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 1.5rem;
+                border: none;
+                box-shadow: none;
+                color: black;
+                background: white;
+                font-size: 12px;
+            }
+            .printable-prescription h2 {
+              font-size: 24px;
+            }
+            .printable-prescription h3 {
+              font-size: 16px;
+              border-color: #ccc;
+            }
+            .printable-prescription .text-indigo-400 {
+                color: #555 !important;
+            }
+            .printable-prescription .text-slate-400 {
+                 color: #333 !important;
+            }
+            .printable-prescription .text-white {
+                 color: #000 !important;
+            }
+            .printable-prescription .font-semibold {
+                 font-weight: 600 !important;
+            }
+             .printable-prescription .border-slate-700 {
+                 border-color: #ddd !important;
+            }
+            .printable-prescription .text-teal-400 {
+                color: #000 !important;
+            }
+             .printable-prescription .bg-slate-800\/50 {
+                 background: #f9f9f9 !important;
+                 border-color: #eee !important;
+             }
+            .no-print, .no-print * {
+                display: none !important;
+            }
+        }
     </style>
 <script type="importmap">
 {

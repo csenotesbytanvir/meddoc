@@ -193,10 +193,19 @@ const WelcomeScreen = ({ onStart, onViewHistory, historyCount }: { onStart: () =
     </>
 )};
 
-const IntakeForm = ({ onAnalyze, error, setError }: { onAnalyze: (data: IntakeData) => void; error: string | null; setError: (error: string | null) => void; }) => {
+const IntakeForm = ({ onAnalyze, error, setError, initialData, recordIdToUpdate, onCancelEdit }: { onAnalyze: (data: IntakeData, recordId?: string) => void; error: string | null; setError: (error: string | null) => void; initialData?: IntakeData | null; recordIdToUpdate?: string | null; onCancelEdit: () => void; }) => {
     const [patientInfo, setPatientInfo] = useState<PatientInfo>({ name: '', age: '', gender: 'Male' });
     const [primaryBodyPart, setPrimaryBodyPart] = useState<BodyPart | null>(null);
     const [selectedSymptoms, setSelectedSymptoms] = useState<Symptom[]>([]);
+    const isEditing = !!recordIdToUpdate;
+
+    useEffect(() => {
+        if (initialData) {
+            setPatientInfo(initialData.patientInfo);
+            setPrimaryBodyPart(initialData.primaryBodyPart);
+            setSelectedSymptoms(initialData.symptoms);
+        }
+    }, [initialData]);
 
     const handleSymptomToggle = (symptom: Symptom) => {
         setSelectedSymptoms(prev =>
@@ -215,7 +224,7 @@ const IntakeForm = ({ onAnalyze, error, setError }: { onAnalyze: (data: IntakeDa
 
     const handleSubmit = () => {
         if (isFormValid && primaryBodyPart) {
-            onAnalyze({ patientInfo, primaryBodyPart, symptoms: selectedSymptoms });
+            onAnalyze({ patientInfo, primaryBodyPart, symptoms: selectedSymptoms }, recordIdToUpdate || undefined);
         }
     };
     
@@ -250,7 +259,8 @@ const IntakeForm = ({ onAnalyze, error, setError }: { onAnalyze: (data: IntakeDa
             <div className="space-y-8 mt-10">
                 <Card>
                     <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                        <UserCircleIcon className="w-8 h-8 text-indigo-400" /> Patient Information
+                        <UserCircleIcon className="w-8 h-8 text-indigo-400" /> 
+                        {isEditing ? `Editing: ${initialData?.patientInfo.name}` : 'Patient Information'}
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -302,9 +312,14 @@ const IntakeForm = ({ onAnalyze, error, setError }: { onAnalyze: (data: IntakeDa
                         </div>
                     )}
                 </Card>
-                <div className="flex justify-end pt-4">
-                    <button onClick={handleSubmit} disabled={!isFormValid} className={`px-8 py-3 font-bold text-white rounded-lg transition-all duration-300 flex items-center gap-2 ${isFormValid ? 'bg-indigo-600 hover:bg-indigo-500 animate-pulse-button' : 'bg-slate-600 cursor-not-allowed'}`}>
-                        Analyze Symptoms <BeakerIcon className="w-5 h-5"/>
+                <div className="flex justify-end items-center pt-4 gap-4">
+                    {isEditing && (
+                        <button onClick={onCancelEdit} className="px-6 py-3 font-bold text-white bg-slate-600 hover:bg-slate-500 rounded-lg transition-all duration-300">
+                           Cancel Edit
+                        </button>
+                    )}
+                    <button onClick={handleSubmit} disabled={!isFormValid} className={`px-8 py-3 font-bold text-white rounded-lg transition-all duration-300 flex items-center gap-2 ${isFormValid ? 'bg-indigo-600 hover:bg-indigo-500' + (isEditing ? '' : ' animate-pulse-button') : 'bg-slate-600 cursor-not-allowed'}`}>
+                        {isEditing ? 'Update Analysis' : 'Analyze Symptoms'} <BeakerIcon className="w-5 h-5"/>
                     </button>
                 </div>
             </div>
@@ -343,9 +358,9 @@ const PrescriptionItem: React.FC<{ p: Prescription, safetyMode: boolean }> = ({ 
 
 const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { intakeData: IntakeData; result: AnalysisResult; safetyMode: boolean; onClose: () => void; }) => {
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-            <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative text-slate-200 animate-scale-in">
-                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in no-print">
+            <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative text-slate-200 animate-scale-in printable-prescription">
+                <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition no-print">
                     <XMarkIcon className="w-7 h-7" />
                 </button>
                 <div className="p-8">
@@ -413,12 +428,19 @@ const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { in
                         </div>
                     </div>
                 </div>
+                 <div className="p-8 pt-2 no-print">
+                    <div className="flex justify-end border-t border-slate-700 pt-6">
+                         <button onClick={() => window.print()} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm hover:bg-indigo-500 transition flex items-center gap-2">
+                            Download as PDF
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
-const HistoryScreen = ({ history, onViewItem, onBack, onDeleteItem, onClearAll }: { history: AnalysisRecord[]; onViewItem: (record: AnalysisRecord) => void; onBack: () => void; onDeleteItem: (id: string) => void; onClearAll: () => void; }) => (
+const HistoryScreen = ({ history, onViewItem, onBack, onDeleteItem, onEditItem, onClearAll }: { history: AnalysisRecord[]; onViewItem: (record: AnalysisRecord) => void; onBack: () => void; onDeleteItem: (id: string) => void; onEditItem: (record: AnalysisRecord) => void; onClearAll: () => void; }) => (
     <div className="max-w-4xl mx-auto py-12 px-4">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
             <h1 className="text-3xl font-bold text-white">Analysis History</h1>
@@ -451,13 +473,22 @@ const HistoryScreen = ({ history, onViewItem, onBack, onDeleteItem, onClearAll }
                             <p className="text-sm text-slate-400 mt-1">{record.intakeData.symptoms.map(s => s.name).join(', ')}</p>
                             <p className="text-xs text-slate-500 mt-2">{record.date}</p>
                         </button>
-                        <button 
-                            onClick={() => onDeleteItem(record.id)} 
-                            className="p-2 rounded-full text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition"
-                            aria-label="Delete record"
-                        >
-                            <TrashIcon className="w-5 h-5"/>
-                        </button>
+                        <div className="flex items-center gap-1">
+                            <button 
+                                onClick={() => onEditItem(record)} 
+                                className="p-2 rounded-full text-slate-500 hover:bg-indigo-900/50 hover:text-indigo-400 transition"
+                                aria-label="Edit record"
+                            >
+                                <PencilSquareIcon className="w-5 h-5"/>
+                            </button>
+                            <button 
+                                onClick={() => onDeleteItem(record.id)} 
+                                className="p-2 rounded-full text-slate-500 hover:bg-red-900/50 hover:text-red-400 transition"
+                                aria-label="Delete record"
+                            >
+                                <TrashIcon className="w-5 h-5"/>
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -616,6 +647,7 @@ export default function App() {
     const [history, setHistory] = useState<AnalysisRecord[]>([]);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [appMode, setAppMode] = useState<AppMode>('live');
+    const [editingRecord, setEditingRecord] = useState<AnalysisRecord | null>(null);
 
     useEffect(() => {
         // Load app mode
@@ -660,7 +692,7 @@ export default function App() {
         }
     };
 
-    const handleAnalyze = async (data: IntakeData) => {
+    const handleAnalyze = async (data: IntakeData, recordId?: string) => {
         setIntakeData(data);
         setAppState('loading');
         setError(null);
@@ -668,18 +700,32 @@ export default function App() {
             const result = await getAnalysis(data);
             setAnalysisResult(result);
 
-            const newRecord: AnalysisRecord = {
-                id: new Date().toISOString(),
-                date: new Date().toLocaleString(),
-                intakeData: data,
-                result: result,
-            };
-            setHistory(prevHistory => {
-                const updatedHistory = [...prevHistory, newRecord];
-                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedHistory));
-                return updatedHistory;
-            });
+            if (recordId) { // Update existing record
+                setHistory(prevHistory => {
+                    const updatedHistory = prevHistory.map(record => {
+                        if (record.id === recordId) {
+                            return { ...record, date: new Date().toLocaleString(), intakeData: data, result };
+                        }
+                        return record;
+                    });
+                    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedHistory));
+                    return updatedHistory;
+                });
+            } else { // Create new record
+                const newRecord: AnalysisRecord = {
+                    id: new Date().toISOString(),
+                    date: new Date().toLocaleString(),
+                    intakeData: data,
+                    result: result,
+                };
+                setHistory(prevHistory => {
+                    const updatedHistory = [...prevHistory, newRecord];
+                    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedHistory));
+                    return updatedHistory;
+                });
+            }
             
+            setEditingRecord(null); // Clear editing state on success
             setAppState('results');
         } catch (e: any) {
             const errorMessage = e.message || 'An unknown error occurred. Please try again.';
@@ -691,6 +737,7 @@ export default function App() {
             } else {
                 setError(errorMessage);
             }
+            setEditingRecord(null); // Clear editing state on failure
             setAppState('intake');
         }
     };
@@ -700,6 +747,7 @@ export default function App() {
         setIntakeData(null);
         setAnalysisResult(null);
         setError(null);
+        setEditingRecord(null);
     };
     
     const handleStart = () => {
@@ -717,6 +765,16 @@ export default function App() {
         setIntakeData(record.intakeData);
         setAnalysisResult(record.result);
         setAppState('results');
+    };
+
+    const handleEditHistoryItem = (record: AnalysisRecord) => {
+        setEditingRecord(record);
+        setAppState('intake');
+    };
+
+    const handleCancelEdit = () => {
+        setEditingRecord(null);
+        setAppState('history');
     };
 
     const handleDeleteHistoryItem = (id: string) => {
@@ -739,7 +797,14 @@ export default function App() {
             case 'welcome':
                 return <WelcomeScreen onStart={handleStart} onViewHistory={handleViewHistory} historyCount={history.length}/>
             case 'intake':
-                return <IntakeForm onAnalyze={handleAnalyze} error={error} setError={setError} />;
+                return <IntakeForm 
+                    onAnalyze={handleAnalyze} 
+                    error={error} 
+                    setError={setError}
+                    initialData={editingRecord?.intakeData}
+                    recordIdToUpdate={editingRecord?.id}
+                    onCancelEdit={handleCancelEdit}
+                />;
             case 'loading':
                 return <LoadingScreen />;
             case 'results':
@@ -749,7 +814,7 @@ export default function App() {
                 setAppState('intake');
                 return null;
             case 'history':
-                return <HistoryScreen history={history} onViewItem={handleViewHistoryItem} onBack={handleStartNew} onDeleteItem={handleDeleteHistoryItem} onClearAll={handleClearAllHistory} />;
+                return <HistoryScreen history={history} onViewItem={handleViewHistoryItem} onBack={handleStartNew} onDeleteItem={handleDeleteHistoryItem} onEditItem={handleEditHistoryItem} onClearAll={handleClearAllHistory} />;
             default:
                 return <WelcomeScreen onStart={handleStart} onViewHistory={handleViewHistory} historyCount={history.length}/>
         }
@@ -775,7 +840,7 @@ export default function App() {
     return (
         <div className="min-h-screen text-white bg-cover bg-center bg-fixed" style={{backgroundImage: "url('https://images.unsplash.com/photo-1584515933487-779824d29309?q=80&w=2070&auto=format&fit=crop')"}}>
             <div className="min-h-screen bg-[#0B1120]/90 backdrop-blur-sm flex flex-col">
-                <header className="p-4">
+                <header className="p-4 no-print">
                     <div className="max-w-7xl mx-auto flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <LogoIcon className="w-8 h-8 text-indigo-400" />
