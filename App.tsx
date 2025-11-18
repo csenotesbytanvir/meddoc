@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from './constants';
 import { BodyPart, PatientInfo, Symptom, AnalysisResult, IntakeData, Prescription, AnalysisRecord } from './types';
@@ -362,13 +363,65 @@ const PrescriptionItem: React.FC<{ p: Prescription, safetyMode: boolean }> = ({ 
 
 
 const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { intakeData: IntakeData; result: AnalysisResult; safetyMode: boolean; onClose: () => void; }) => {
+    
+    const handlePrint = () => {
+        const printNode = document.getElementById('printable-content');
+        if (!printNode) return;
+
+        const contentToPrint = printNode.innerHTML;
+
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Prescription - MedDoc Prescriber</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>
+                    @page {
+                        size: A4;
+                        margin: 1in;
+                    }
+                    body {
+                        margin: 0;
+                        -webkit-print-color-adjust: exact;
+                        color-adjust: exact;
+                    }
+                    /* Ensure backgrounds and borders print correctly */
+                    .bg-slate-800\\/50 {
+                        background-color: #f9f9f9 !important;
+                        border: 1px solid #eee !important;
+                    }
+                </style>
+            </head>
+            <body>
+                ${contentToPrint}
+            </body>
+            </html>
+        `);
+        doc.close();
+
+        iframe.onload = () => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 500);
+        };
+    };
+
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in modal-overlay">
-            <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative text-slate-200 animate-scale-in printable-prescription">
+            <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative text-slate-200 animate-scale-in">
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition no-print">
                     <XMarkIcon className="w-7 h-7" />
                 </button>
-                <div className="p-8">
+                <div id="printable-content" className="p-8">
                     <div className="flex justify-between items-start pb-4 border-b border-slate-700 mb-6">
                         <div>
                             <h2 className="text-3xl font-bold text-white">MedDoc Prescriber</h2>
@@ -435,7 +488,7 @@ const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { in
                 </div>
                  <div className="p-8 pt-2 no-print">
                     <div className="flex justify-end border-t border-slate-700 pt-6">
-                         <button onClick={() => window.print()} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm hover:bg-indigo-500 transition flex items-center gap-2">
+                         <button onClick={handlePrint} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm hover:bg-indigo-500 transition flex items-center gap-2">
                             Download as PDF
                         </button>
                     </div>
