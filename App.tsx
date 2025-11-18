@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from './constants';
 import { BodyPart, PatientInfo, Symptom, AnalysisResult, IntakeData, Prescription, AnalysisRecord } from './types';
@@ -368,50 +369,58 @@ const FullPrescriptionModal = ({ intakeData, result, safetyMode, onClose }: { in
         const printNode = document.getElementById('printable-content');
         if (!printNode) return;
 
-        const contentToPrint = printNode.innerHTML;
-
         const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
         document.body.appendChild(iframe);
 
         const doc = iframe.contentWindow.document;
         doc.open();
+
+        const styles = Array.from(document.head.querySelectorAll('style, link[rel="stylesheet"]'))
+            .map(el => el.outerHTML)
+            .join('');
+            
+        const contentToPrint = printNode.innerHTML;
+
         doc.write(`
             <!DOCTYPE html>
             <html>
             <head>
                 <title>Prescription - MedDoc Prescriber</title>
                 <script src="https://cdn.tailwindcss.com"></script>
+                ${styles}
                 <style>
                     @page {
                         size: A4;
-                        margin: 1in;
+                        margin: 0.5in;
                     }
                     body {
-                        margin: 0;
-                        -webkit-print-color-adjust: exact;
-                        color-adjust: exact;
+                        -webkit-print-color-adjust: exact !important;
+                        color-adjust: exact !important;
                     }
-                    /* Ensure backgrounds and borders print correctly */
-                    .bg-slate-800\\/50 {
-                        background-color: #f9f9f9 !important;
-                        border: 1px solid #eee !important;
-                    }
+                    .no-print { display: none !important; }
                 </style>
             </head>
-            <body>
-                ${contentToPrint}
+            <body class="bg-[#0B1120]">
+                <div class="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-3xl w-full mx-auto text-slate-200">
+                     <div class="p-8">
+                        ${contentToPrint}
+                    </div>
+                </div>
             </body>
             </html>
         `);
         doc.close();
 
         iframe.onload = () => {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
             setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
                 document.body.removeChild(iframe);
-            }, 500);
+            }, 1000);
         };
     };
 
