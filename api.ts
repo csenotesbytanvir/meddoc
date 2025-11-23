@@ -140,6 +140,28 @@ const labReportSchema = {
     required: ['tests', 'summary', 'disclaimer']
 };
 
+// --- HELPER FUNCTION FOR ERROR HANDLING ---
+
+const handleError = (e: any): never => {
+    console.error("API Call Failed", e);
+    const msg = e.toString().toLowerCase();
+    
+    // Check for rate limiting / quota errors
+    if (msg.includes('429') || msg.includes('quota') || msg.includes('resource_exhausted')) {
+        throw new Error("⚠️ System Busy: You have hit the Free Tier rate limit. Please wait 30-60 seconds and try again.");
+    }
+    
+    if (msg.includes('api key') || msg.includes('403')) {
+         throw new Error("⚠️ Authentication Error: Invalid API Key. Please update it in Settings.");
+    }
+    
+    if (msg.includes('503') || msg.includes('overloaded')) {
+        throw new Error("⚠️ Server Busy: The AI models are currently overloaded. Please retry shortly.");
+    }
+    
+    throw new Error(`⚠️ System Error: ${e.message || "Unknown connection issue"}`);
+};
+
 // --- HELPER FUNCTION FOR API CALLS ---
 
 async function callGemini(modelName: string, prompt: string, schema: any, imagePart?: any) {
@@ -148,30 +170,28 @@ async function callGemini(modelName: string, prompt: string, schema: any, imageP
         parts: imagePart ? [imagePart, { text: prompt }] : [{ text: prompt }]
     };
 
-    const response = await ai.models.generateContent({
-        model: modelName,
-        contents: contents,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: schema,
-            systemInstruction: "You are Praxis, an advanced medical AI architected by Tanvir Ahmmed. Your goal is to provide highly accurate, deep, and educational medical analysis. You are not a doctor. Always emphasize that results are for educational purposes only."
-        }
-    });
-    
-    // Improved JSON parsing to handle potential markdown wrappers from models
-    let text = response.text || "{}";
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-        text = jsonMatch[1];
-    } else {
-        text = text.trim();
-    }
-
     try {
+        const response = await ai.models.generateContent({
+            model: modelName,
+            contents: contents,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema,
+                systemInstruction: "You are Praxis, an advanced medical AI architected by Tanvir Ahmmed. Your goal is to provide highly accurate, deep, and educational medical analysis. You are not a doctor. Always emphasize that results are for educational purposes only."
+            }
+        });
+        
+        let text = response.text || "{}";
+        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+            text = jsonMatch[1];
+        } else {
+            text = text.trim();
+        }
+
         return JSON.parse(text);
     } catch (e) {
-        console.error("JSON Parse Error", text);
-        throw new Error("Failed to process Praxis response. Please try again.");
+        handleError(e);
     }
 }
 
@@ -187,46 +207,52 @@ export async function getAnalysis(data: IntakeData): Promise<AnalysisResult> {
          } as AnalysisResult;
     }
 
-    // UPGRADED: Using gemini-3-pro-preview for maximum reasoning power on complex symptom analysis
-    return callGemini("gemini-3-pro-preview", buildSymptomPrompt(data), analysisSchema);
+    // Switched to gemini-2.5-flash for all analysis to prevent 429 errors
+    return callGemini("gemini-2.5-flash", buildSymptomPrompt(data), analysisSchema);
 }
 
 export async function analyzeDermatology(imageBase64: string): Promise<VisualDiagnosisResult> {
     const imagePart = { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } };
     const prompt = "Analyze this image of a skin condition or injury. Identify the potential condition, severity, and visual characteristics. Provide immediate first aid advice. Educational use only.";
-    // Keep vision fast with Flash
     return callGemini("gemini-2.5-flash", prompt, visualDiagnosisSchema, imagePart);
 }
 
 export async function analyzePrescription(imageBase64: string): Promise<RxScannerResult> {
     const imagePart = { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } };
     const prompt = "Transcribe this medical prescription. List all medications, their dosages, frequencies, and explain the purpose of each drug in simple language. Extract any special instructions.";
-    // Keep vision fast with Flash
     return callGemini("gemini-2.5-flash", prompt, rxScannerSchema, imagePart);
 }
 
 export async function analyzeLabReport(imageBase64: string): Promise<LabReportResult> {
     const imagePart = { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } };
     const prompt = "Analyze this medical lab report. Extract test names, values, units, and ranges. Determine if the status is Normal, High, or Low. Provide a simple interpretation for any abnormal results and a general summary.";
-    // Keep vision fast with Flash
     return callGemini("gemini-2.5-flash", prompt, labReportSchema, imagePart);
 }
 
 export async function chatWithPraxis(history: {role: 'user' | 'model', text: string}[], message: string): Promise<string> {
-    const ai = getGenAIClient();
-    
-    // UPGRADED: Using gemini-3-pro-preview for the chat to provide "All Gemini Power" and high-level reasoning
-    const chat = ai.chats.create({
-        model: "gemini-3-pro-preview", 
-        history: history.map(h => ({
-            role: h.role,
-            parts: [{ text: h.text }]
-        })),
-        config: {
-            systemInstruction: "You are Praxis, a highly advanced, expert-level medical AI assistant. You were architected and built by Tanvir Ahmmed. You are powered by the most capable Gemini models to ensure top-tier reasoning and accuracy. Your role is to provide comprehensive, nuanced, and deeply knowledgeable medical information. Do not limit your answers to simple summaries; explain mechanisms, interpret complex queries with precision, and offer reassuring, professional guidance. You must strictly maintain your identity as Praxis by Tanvir Ahmmed. You are an educational tool, not a replacement for a doctor. Never provide a definitive diagnosis, but offer detailed educational analysis."
-        }
-    });
+    try {
+        const ai = getGenAIClient();
+        
+        // Switched to gemini-2.5-flash for stability and quota management
+        const chat = ai.chats.create({
+            model: "gemini-2.5-flash", 
+            history: history.map(h => ({
+                role: h.role,
+                parts: [{ text: h.text }]
+            })),
+            config: {
+                systemInstruction: "You are Praxis, a highly advanced, expert-level medical AI assistant. You were architected and built by Tanvir Ahmmed. Your role is to provide comprehensive, nuanced, and deeply knowledgeable medical information. Do not limit your answers to simple summaries; explain mechanisms, interpret complex queries with precision, and offer reassuring, professional guidance. You must strictly maintain your identity as Praxis by Tanvir Ahmmed. You are an educational tool, not a replacement for a doctor. Never provide a definitive diagnosis, but offer detailed educational analysis."
+            }
+        });
 
-    const result = await chat.sendMessage({ message });
-    return result.text || "I apologize, I couldn't process that request.";
+        const result = await chat.sendMessage({ message });
+        return result.text || "I apologize, I couldn't process that request.";
+    } catch (e: any) {
+        // Return friendly message directly in chat instead of throwing
+        const msg = e.toString().toLowerCase();
+        if (msg.includes('429') || msg.includes('quota')) {
+            return "⚠️ **System Capacity Reached**: I am currently handling too many requests (Free Tier Limit). Please wait about a minute and ask me again.";
+        }
+        return "⚠️ **Connection Error**: I was unable to process your request. Please check your network or API key.";
+    }
 }
