@@ -1,35 +1,88 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF--8" />
+    <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MedDoc Prescriber</title>
+    <title>MedDoc Prescriber - By Tanvir Ahmmed</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        :root {
+            /* Default Theme (Praxis/Cosmic) */
+            --bg-main: #0B1120;
+            --bg-secondary: rgba(0, 0, 0, 0.2);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(17, 24, 39, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #4f46e5; /* Indigo 600 */
+            --card-hover: rgba(255, 255, 255, 0.07);
+        }
+
+        .theme-light {
+            --bg-main: #f1f5f9;
+            --bg-secondary: rgba(255, 255, 255, 0.5);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(203, 213, 225, 0.6);
+            --accent-primary: #2563eb; /* Blue 600 */
+            --card-hover: rgba(0, 0, 0, 0.03);
+        }
+
+        .theme-dark {
+            --bg-main: #000000;
+            --bg-secondary: rgba(20, 20, 20, 0.8);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(10, 10, 10, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --accent-primary: #6366f1; /* Indigo 500 */
+            --card-hover: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        .text-main { color: var(--text-main); }
+        .text-muted { color: var(--text-muted); }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .custom-input {
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+        }
+
         @keyframes typing {
             from { width: 0 }
             to { width: 100% }
         }
         @keyframes blink-caret {
             from, to { background-size: 0 0; }
-            50% { background-size: .4em 3px; } /* Controls the width and thickness of the underscore cursor */
+            50% { background-size: .4em 3px; }
         }
         .animate-typing {
             display: inline-block;
             overflow: hidden;
             white-space: nowrap;
             letter-spacing: .1em;
-            padding-right: .4em; /* Makes space for the cursor */
-
-            /* The cursor, created with a background image that sticks to the right edge */
+            padding-right: .4em;
             background-image: linear-gradient(orange, orange);
             background-repeat: no-repeat;
-            background-position: 100% 90%; /* Position: right edge, near the bottom */
-            
-            animation: 
-                typing 3.5s steps(28, end),
-                blink-caret .75s step-end infinite;
+            background-position: 100% 90%;
+            animation: typing 3.5s steps(28, end), blink-caret .75s step-end infinite;
         }
 
         @keyframes pulse-button {
@@ -62,11 +115,76 @@
             from { opacity: 0; transform: scale(0.95) translateY(10px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
         .animate-fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
+            animation: fadeIn 0.5s ease-out forwards;
         }
         .animate-scale-in {
-            animation: scaleIn 0.3s ease-out forwards;
+            animation: scaleIn 0.4s ease-out forwards;
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        /* Grid pattern for Landing Page */
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, var(--glass-border) 1px, transparent 1px),
+                              linear-gradient(to bottom, var(--glass-border) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
+
+        /* PRINT STYLES */
+        @media print {
+            @page { margin: 1.5cm; }
+            body { 
+                background-color: white !important; 
+                color: black !important; 
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            .no-print, .fixed, nav, aside, button, input, .glass-panel { 
+                display: none !important; 
+            }
+            .print-only-visible {
+                display: block !important;
+                visibility: visible !important;
+                position: static !important;
+                background: white !important;
+                border: none !important;
+                box-shadow: none !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            /* Ensure text visibility in print */
+            .text-main, .text-muted, h1, h2, h3, p, span, div {
+                color: black !important;
+                text-shadow: none !important;
+            }
+            /* Re-style specific elements for paper */
+            .bg-secondary, .custom-input {
+                background-color: #f3f4f6 !important; /* Light gray for print */
+                border: 1px solid #e5e7eb !important;
+            }
+            /* Hide gradient blobs */
+            .absolute { display: none; }
+            
+            /* Force specific containers to show */
+            #printable-area, #printable-area * {
+                display: block !important;
+                visibility: visible !important;
+            }
+            #printable-area {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+            }
         }
     </style>
 <script type="importmap">
@@ -80,7 +198,7 @@
 }
 </script>
 </head>
-<body class="bg-[#0B1120]">
+<body class="font-sans antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>

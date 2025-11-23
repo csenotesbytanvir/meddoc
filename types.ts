@@ -47,6 +47,52 @@ export interface IntakeData {
 export interface AnalysisRecord {
   id: string;
   date: string;
-  intakeData: IntakeData;
-  result: AnalysisResult;
+  type: 'symptom' | 'visual' | 'rx' | 'report';
+  summary: string; // Brief title for history
+  intakeData?: IntakeData; // For symptom checker
+  result: any; // Flexible for different result types
+}
+
+// --- NEW INTERFACES ---
+
+export interface VisualDiagnosisResult {
+  conditionName: string;
+  probability: string;
+  severity: 'Low' | 'Moderate' | 'High' | 'Critical';
+  visualCharacteristics: string[];
+  description: string;
+  recommendations: string[];
+  disclaimer: string;
+}
+
+export interface RxScannerResult {
+  medications: {
+    name: string;
+    dosage: string;
+    frequency: string;
+    purpose: string;
+    notes: string;
+  }[];
+  patientInstructions: string[];
+  disclaimer: string;
+}
+
+export interface LabReportResult {
+  tests: {
+    testName: string;
+    value: string;
+    unit: string;
+    referenceRange: string;
+    status: 'Normal' | 'High' | 'Low' | 'Critical';
+    interpretation: string;
+  }[];
+  summary: string;
+  disclaimer: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: Date;
 }
