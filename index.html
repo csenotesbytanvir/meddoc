@@ -99,30 +99,90 @@
         .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-        /* PRINT STYLES */
+        /* --- HIGH FIDELITY PRINT STYLES --- */
         @media print {
-            @page { margin: 0.5cm; }
-            body { 
-                background-color: white !important; 
-                color: black !important; 
-                print-color-adjust: exact;
+            @page { 
+                margin: 0.5cm; 
+                size: auto;
             }
-            .orb, .glass-panel, .no-print { display: none !important; }
+
+            body { 
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                background-color: white !important; 
+                color: #1a1a1a !important; 
+                overflow: visible !important;
+                height: auto !important;
+            }
+
+            /* Hide interactive/decorative elements */
+            .orb, .no-print, button:not(.no-print), .sidebar { 
+                display: none !important; 
+            }
+
+            /* Main Layout Resets */
+            #root, .md\:ml-72 {
+                margin: 0 !important;
+                padding: 0 !important;
+                display: block !important;
+                width: 100% !important;
+                max-width: none !important;
+            }
+
+            /* Container Expansions */
+            .glass-panel, 
+            .overflow-y-auto, 
+            .overflow-hidden,
+            [class*="overflow-"] {
+                overflow: visible !important;
+                height: auto !important;
+                max-height: none !important;
+                position: static !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: transparent !important;
+                display: block !important;
+            }
+
+            /* Card Styling for Print */
+            /* We want inner cards to look like distinct sections */
+            .bg-\[var\(--bg-secondary\)\] {
+                background-color: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                color: #0f172a !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            
+            /* Text Color Mappings for Print (Keep them colorful!) */
+            .text-\[var\(--text-main\)\] { color: #000000 !important; }
+            .text-\[var\(--text-muted\)\] { color: #475569 !important; }
+            
+            .text-cyan-400 { color: #0891b2 !important; }
+            .text-purple-400 { color: #7c3aed !important; }
+            .text-emerald-400 { color: #059669 !important; }
+            .text-pink-400 { color: #db2777 !important; }
+            .text-amber-400 { color: #d97706 !important; }
+            .text-blue-500 { color: #2563eb !important; }
+            .text-indigo-400 { color: #4f46e5 !important; }
+
+            /* Ensure grids behave */
+            .grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important; /* Force 2 cols for better density on paper */
+                gap: 1rem !important;
+            }
+            .grid-cols-1 { grid-template-columns: 1fr !important; }
+
+            /* Specific component tweaks */
+            #printable-area {
+                display: block !important;
+                visibility: visible !important;
+            }
+
             .print-only-visible {
                 display: block !important;
-                background: white !important;
-                color: black !important;
-                border: none !important;
-                box-shadow: none !important;
-                width: 100% !important;
             }
-            /* Text resets for print */
-            .text-gradient-praxis, .text-gradient-primary {
-                background: none !important;
-                color: black !important;
-                -webkit-text-fill-color: black !important;
-            }
-            h1, h2, h3, p, span { color: black !important; }
         }
     </style>
 <script type="importmap">

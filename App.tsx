@@ -267,7 +267,7 @@ const VisualDiagnosisScreen = ({ onAnalyze, isLoading, result, error }: any) => 
                     {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 flex items-start gap-3"><InfoIcon className="w-5 h-5 flex-shrink-0 mt-0.5"/> {error}</div>}
                 </div>
 
-                <div id="printable-area" className={`glass-panel rounded-3xl p-8 min-h-[400px] relative overflow-hidden border-t border-pink-500/20 ${result ? 'print-only-visible' : ''}`}>
+                <div id="printable-area" className={`glass-panel rounded-3xl p-8 min-h-[400px] relative overflow-hidden border-t border-pink-500/20 ${result ? 'print-only-visible print:overflow-visible print:h-auto print:max-h-none' : ''}`}>
                     {!result ? (
                         <div className="h-full flex flex-col items-center justify-center text-[var(--text-muted)]">
                             <PhotoIcon className="w-24 h-24 mb-6 opacity-10" />
@@ -372,7 +372,7 @@ const RxScannerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
                     {error && <div className="text-red-400 text-sm bg-red-500/10 p-4 border border-red-500/20 rounded-xl">{error}</div>}
                 </div>
                 
-                <div id="printable-area" className={`glass-panel rounded-3xl border border-[var(--glass-border)] p-8 min-h-[400px] overflow-y-auto relative border-t border-emerald-500/20 ${result ? 'print-only-visible' : ''}`}>
+                <div id="printable-area" className={`glass-panel rounded-3xl border border-[var(--glass-border)] p-8 min-h-[400px] overflow-y-auto relative border-t border-emerald-500/20 ${result ? 'print-only-visible print:overflow-visible print:h-auto print:max-h-none' : ''}`}>
                      {!result ? (
                         <div className="h-full flex flex-col items-center justify-center text-[var(--text-muted)]">
                             <DocumentTextIcon className="w-24 h-24 mb-6 opacity-10" />
@@ -461,7 +461,7 @@ const ReportAnalyzerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
                     {error && <div className="text-red-400 text-sm p-4 bg-red-500/10 border border-red-500/20 rounded-xl">{error}</div>}
                 </div>
 
-                <div id="printable-area" className={`xl:w-2/3 glass-panel rounded-3xl border border-[var(--glass-border)] p-8 min-h-[500px] border-t border-purple-500/20 ${result ? 'print-only-visible' : ''}`}>
+                <div id="printable-area" className={`xl:w-2/3 glass-panel rounded-3xl border border-[var(--glass-border)] p-8 min-h-[500px] border-t border-purple-500/20 ${result ? 'print-only-visible print:overflow-visible print:h-auto print:max-h-none' : ''}`}>
                     {!result ? (
                          <div className="h-full flex flex-col items-center justify-center text-[var(--text-muted)]">
                              <BeakerIcon className="w-24 h-24 mb-6 opacity-10"/>
@@ -684,11 +684,11 @@ const HistoryScreen = () => {
 
                 <div className="md:col-span-2">
                     {selectedRecord ? (
-                        <div className="glass-panel rounded-3xl p-6 border border-[var(--glass-border)] h-full min-h-[500px] overflow-y-auto">
+                        <div className="glass-panel rounded-3xl p-6 border border-[var(--glass-border)] h-full min-h-[500px] overflow-y-auto print:overflow-visible print:h-auto print:max-h-none">
                              <div className="flex justify-end mb-4 no-print">
                                 <button onClick={handlePrint} className="flex items-center gap-2 text-cyan-400 hover:text-white font-bold uppercase text-xs tracking-widest transition-colors"><DocumentTextIcon className="w-4 h-4"/> Print Record</button>
                              </div>
-                             <div id="printable-area" className="print-only-visible">
+                             <div id="printable-area" className="print-only-visible print:overflow-visible print:h-auto print:max-h-none">
                                 <div className="border-b border-[var(--glass-border)] pb-4 mb-4">
                                     <h3 className="text-2xl font-bold text-[var(--text-main)]">{selectedRecord.summary}</h3>
                                     <p className="text-[var(--text-muted)] text-xs font-mono mt-1">ID: {selectedRecord.id} • {new Date(selectedRecord.date).toLocaleString()}</p>
@@ -919,7 +919,7 @@ export default function App() {
                                     <button onClick={handlePrint} className="text-cyan-400 flex items-center gap-2 font-bold uppercase text-xs tracking-widest hover:text-cyan-300"><DocumentTextIcon className="w-4 h-4"/> Print Report</button>
                                 </div>
                                 
-                                <div id="printable-area" className="glass-panel p-8 rounded-3xl border border-[var(--glass-border)] print-only-visible border-t border-cyan-500/20">
+                                <div id="printable-area" className="glass-panel p-8 rounded-3xl border border-[var(--glass-border)] print-only-visible print:overflow-visible print:h-auto print:max-h-none border-t border-cyan-500/20">
                                     <div className="flex justify-between items-end border-b border-[var(--glass-border)] pb-6 mb-8">
                                         <div>
                                             <h2 className="text-3xl font-black text-[var(--text-main)] tracking-tight">Clinical Report</h2>
