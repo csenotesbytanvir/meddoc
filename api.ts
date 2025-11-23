@@ -158,10 +158,21 @@ async function callGemini(modelName: string, prompt: string, schema: any, imageP
         }
     });
     
-    // Improved JSON parsing to handle potential markdown wrappers
+    // Improved JSON parsing to handle potential markdown wrappers from models
     let text = response.text || "{}";
-    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    return JSON.parse(text);
+    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+        text = jsonMatch[1];
+    } else {
+        text = text.trim();
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("JSON Parse Error", text);
+        throw new Error("Failed to process Praxis response. Please try again.");
+    }
 }
 
 // --- EXPORTED API FUNCTIONS ---
@@ -176,7 +187,7 @@ export async function getAnalysis(data: IntakeData): Promise<AnalysisResult> {
          } as AnalysisResult;
     }
 
-    // UPGRADED: Using gemini-3-pro-preview for maximum reasoning power on complex symptom analysis as requested ("All Gemini Power")
+    // UPGRADED: Using gemini-3-pro-preview for maximum reasoning power on complex symptom analysis
     return callGemini("gemini-3-pro-preview", buildSymptomPrompt(data), analysisSchema);
 }
 

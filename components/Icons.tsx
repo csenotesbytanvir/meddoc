@@ -1,6 +1,40 @@
 
 import React from 'react';
 
+// BRAND ICON: PRAXIS
+export const PraxisLogo = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className || "w-10 h-10"}>
+        <defs>
+            <linearGradient id="praxis-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#06b6d4" />
+                <stop offset="50%" stopColor="#8b5cf6" />
+                <stop offset="100%" stopColor="#ec4899" />
+            </linearGradient>
+            <linearGradient id="praxis-glow" x1="100%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#22d3ee" />
+                <stop offset="100%" stopColor="#6366f1" />
+            </linearGradient>
+        </defs>
+        
+        {/* Outer Hexagon */}
+        <path d="M50 5 L90 27.5 L90 72.5 L50 95 L10 72.5 L10 27.5 Z" stroke="url(#praxis-grad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        
+        {/* Inner Core */}
+        <path d="M50 30 L70 40 L70 60 L50 70 L30 60 L30 40 Z" fill="url(#praxis-glow)" opacity="0.8" />
+        
+        {/* Connection Nodes */}
+        <circle cx="50" cy="5" r="4" fill="#fff" />
+        <circle cx="90" cy="27.5" r="4" fill="#fff" />
+        <circle cx="90" cy="72.5" r="4" fill="#fff" />
+        <circle cx="50" cy="95" r="4" fill="#fff" />
+        <circle cx="10" cy="72.5" r="4" fill="#fff" />
+        <circle cx="10" cy="27.5" r="4" fill="#fff" />
+        
+        {/* Central Spark */}
+        <circle cx="50" cy="50" r="8" fill="#fff" />
+    </svg>
+);
+
 export const CheckIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -73,21 +107,13 @@ export const InfoIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-export const LogoIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className={className || "w-8 h-8"}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 2v6h6" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21.75c-4.28 0-8.22-2.43-10-6C3.78 12.18 7.72 9.75 12 9.75s8.22 2.43 10 6c-1.78 3.57-5.72 6-10 6Z" />
-    </svg>
-);
-
 export const MagnifyingGlassIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
       <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
     </svg>
 );
 
-// Body Part Icons - NEW & IMPROVED
+// Body Part Icons
 export const HeadBodyIcon = ({ className }: { className?: string }) => <svg className={className || "w-8 h-8"} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 2.5C8.358 2.5 5 5.858 5 10V11C5 14.866 8.134 18 12 18s7-3.134 7-7v-1c0-4.142-3.358-7.5-7.5-7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M15 11.5A3 3 0 119 11.5a3 3 0 016 0z" stroke="currentColor" strokeWidth="1.5"></path><path d="M12 18v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>;
 export const NeckBodyIcon = ({ className }: { className?: string }) => <svg className={className || "w-8 h-8"} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M15 7v1a3 3 0 01-6 0V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M18 11.5c0 1.933-2.686 3.5-6 3.5s-6-1.567-6-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M18 11.5v3c0 1.657-2.686 3-6 3s-6-1.343-6-3v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>;
 export const ChestBodyIcon = ({ className }: { className?: string }) => <svg className={className || "w-8 h-8"} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.663 4.22C15.022 2.89 12.63 3.14 12.013 5.42c-.618-2.28-2.997-2.53-4.64-1.2C5.45 5.72 5.7 8.37 7.763 9.77c2.022 1.38 3.55 1.57 4.25 2.55.7-1 2.228-1.17 4.25-2.55C18.3 8.37 18.55 5.72 16.663 4.22z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path><path d="M19 12v3a4 4 0 01-4 4H9a4 4 0 01-4-4v-3c0-3.866 3.134-7 7-7h0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>;
