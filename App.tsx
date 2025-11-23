@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from './constants';
 import { BodyPart, PatientInfo, Symptom, AnalysisResult, IntakeData, AnalysisRecord, VisualDiagnosisResult, RxScannerResult, LabReportResult, ChatMessage } from './types';
 import { 
@@ -32,7 +32,11 @@ const convertFileToBase64 = (file: File): Promise<string> => {
     });
 };
 
-const saveHistory = (type: AnalysisRecord['type'], result: any, summary: string) => {
+const handlePrint = () => {
+    window.print();
+};
+
+const saveHistory = (type: AnalysisRecord['type'], result: any, summary: string, intakeData?: IntakeData) => {
     try {
         const historyStr = localStorage.getItem(HISTORY_STORAGE_KEY);
         const history: AnalysisRecord[] = historyStr ? JSON.parse(historyStr) : [];
@@ -41,20 +45,196 @@ const saveHistory = (type: AnalysisRecord['type'], result: any, summary: string)
             date: new Date().toISOString(),
             type,
             summary,
-            result
+            result,
+            intakeData // Optional, mainly for symptom checker context
         };
         history.unshift(newRecord);
         if (history.length > 50) history.pop();
         localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+        // Dispatch event so Dashboard updates immediately
         window.dispatchEvent(new Event('historyUpdated'));
     } catch (e) {
         console.error("Failed to save history", e);
     }
 };
 
-const handlePrint = () => {
-    window.print();
-};
+// --- REUSABLE REPORT COMPONENTS (Used in Main View & History) ---
+
+const SymptomReport = ({ data, result }: { data?: IntakeData, result: AnalysisResult }) => (
+    <div className="space-y-6 animate-scale-in">
+        <div className="flex justify-between items-end border-b border-[var(--glass-border)] pb-6 mb-8">
+            <div>
+                <h2 className="text-3xl font-black text-[var(--text-main)] tracking-tight">Clinical Report</h2>
+                {data && <p className="text-[var(--text-muted)] font-mono text-xs mt-1">PATIENT: {data.patientInfo.name.toUpperCase()}</p>}
+                {!data && <p className="text-[var(--text-muted)] font-mono text-xs mt-1">ARCHIVED RECORD</p>}
+            </div>
+            <div className="text-right">
+                <PraxisLogo className="w-10 h-10 ml-auto mb-2"/>
+                <div className="text-sm font-black text-[var(--text-main)]">PRAXIS AI</div>
+            </div>
+        </div>
+        
+        <div className="grid gap-6">
+            <div className="space-y-4">
+                <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Detected Conditions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {result.conditions.map((c,i) => (
+                        <div key={i} className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--glass-border)] hover:border-cyan-500/30 transition-all">
+                            <h3 className="font-bold text-xl text-[var(--text-main)] mb-2">{c.name}</h3>
+                            <p className="text-[var(--text-muted)] text-sm leading-relaxed">{c.description}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Suggested Treatments</h3>
+                        <div className="space-y-3">
+                        {result.prescriptions.map((p,i) => (
+                            <div key={i} className="bg-[var(--bg-secondary)] p-4 rounded-xl border border-[var(--glass-border)]">
+                                <div className="flex justify-between">
+                                    <span className="font-bold text-[var(--text-main)]">{p.name}</span>
+                                    <span className="text-xs font-mono text-emerald-400 border border-emerald-500/20 px-1 rounded">{p.dosage}</span>
+                                </div>
+                                <p className="text-xs text-[var(--text-muted)] mt-2">{p.purpose}</p>
+                            </div>
+                        ))}
+                        </div>
+                </div>
+                <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-purple-400 uppercase tracking-widest">Lifestyle Protocols</h3>
+                        <ul className="space-y-3">
+                        {result.lifestyleAdvice.map((l,i) => (
+                            <li key={i} className="flex gap-3 text-[var(--text-main)] text-sm p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
+                                <CheckIcon className="w-5 h-5 text-purple-500 flex-shrink-0"/>
+                                {l.text}
+                            </li>
+                        ))}
+                        </ul>
+                </div>
+            </div>
+        </div>
+        <p className="text-[10px] text-[var(--text-muted)] mt-8 pt-4 border-t border-[var(--glass-border)] text-center uppercase tracking-widest opacity-50">
+            Generated by AI • Not a Medical Diagnosis
+        </p>
+    </div>
+);
+
+const VisualReport = ({ result }: { result: VisualDiagnosisResult }) => (
+    <div className="space-y-8 animate-scale-in relative z-10">
+        <div className="flex justify-between items-start border-b border-[var(--glass-border)] pb-6">
+            <div>
+                <div className="text-xs text-pink-400 font-mono mb-1 uppercase tracking-wider font-bold">Analysis Complete</div>
+                <h3 className="text-3xl font-black text-[var(--text-main)]">{result.conditionName}</h3>
+                <p className="text-[var(--text-muted)] text-sm mt-1 flex items-center gap-2"><div className="w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_10px_#ec4899]"></div> {result.probability}</p>
+            </div>
+            <div className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide border ${result.severity === 'Critical' || result.severity === 'High' ? 'bg-red-500/10 border-red-500/30 text-red-400 shadow-red-500/20' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'}`}>
+                {result.severity} Severity
+            </div>
+        </div>
+        
+        <p className="text-[var(--text-main)] leading-relaxed text-lg font-light">{result.description}</p>
+        
+        <div>
+            <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Visual Indicators</h4>
+            <div className="flex flex-wrap gap-2">
+                {result.visualCharacteristics.map((vc: string, i: number) => (
+                    <span key={i} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-sm text-[var(--text-main)] font-medium">{vc}</span>
+                ))}
+            </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/5 p-6 rounded-2xl border border-pink-500/20">
+            <h4 className="text-pink-400 font-bold mb-4 flex items-center gap-2 text-xs uppercase tracking-widest"><ShieldCheckIcon className="w-5 h-5"/> Protocol Recommendation</h4>
+            <ul className="space-y-3">
+                {result.recommendations.map((r: string, i: number) => (
+                    <li key={i} className="flex items-start gap-3 text-[var(--text-main)] text-sm">
+                        <span className="mt-1.5 w-1.5 h-1.5 bg-pink-500 rounded-full flex-shrink-0"></span>
+                        {r}
+                    </li>
+                ))}
+            </ul>
+        </div>
+        <p className="text-[10px] text-[var(--text-muted)] mt-4 text-center opacity-50">{result.disclaimer}</p>
+    </div>
+);
+
+const RxReport = ({ result }: { result: RxScannerResult }) => (
+    <div className="space-y-8 animate-scale-in relative z-10">
+        <div className="flex justify-between items-center border-b border-[var(--glass-border)] pb-4 no-print">
+            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Extracted Medications</h3>
+        </div>
+        <div className="space-y-4">
+            {result.medications.map((med: any, i: number) => (
+                <div key={i} className="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--glass-border)] hover:border-emerald-500/30 transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold text-[var(--text-main)] text-xl">{med.name}</h4>
+                        <span className="text-xs font-mono bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded border border-emerald-500/20">{med.dosage}</span>
+                    </div>
+                    <div className="text-sm text-[var(--text-muted)] mb-3 flex items-center gap-2"><ArrowPathIcon className="w-3 h-3"/> {med.frequency}</div>
+                    <div className="text-sm text-[var(--text-muted)] bg-black/20 p-3 rounded-lg border border-white/5 italic">
+                        <span className="text-emerald-500 not-italic font-semibold mr-1">Purpose:</span> {med.purpose}
+                    </div>
+                </div>
+            ))}
+        </div>
+        
+        <div className="bg-emerald-900/10 p-6 rounded-2xl border border-emerald-500/10">
+            <h4 className="font-bold text-[var(--text-main)] mb-3 flex items-center gap-2 text-sm uppercase tracking-widest"><InfoIcon className="w-4 h-4 text-emerald-400"/> Patient Instructions</h4>
+            <ul className="space-y-2">
+                {result.patientInstructions.map((inst: string, i: number) => (
+                    <li key={i} className="text-sm text-[var(--text-muted)] flex items-start gap-3">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                        {inst}
+                    </li>
+                ))}
+            </ul>
+        </div>
+        <p className="text-[10px] text-[var(--text-muted)] text-center opacity-50">{result.disclaimer}</p>
+    </div>
+);
+
+const LabReportView = ({ result }: { result: LabReportResult }) => (
+    <div className="space-y-8 animate-scale-in">
+        <div className="bg-gradient-to-r from-purple-900/20 to-indigo-900/20 p-6 rounded-2xl border border-white/5">
+            <h3 className="text-xs font-bold text-purple-300 uppercase tracking-widest mb-3">Executive Summary</h3>
+            <p className="text-slate-200 leading-relaxed font-light text-lg">{result.summary}</p>
+        </div>
+        
+        <div className="overflow-hidden rounded-2xl border border-[var(--glass-border)]">
+            <table className="w-full text-left text-sm text-[var(--text-muted)]">
+                <thead className="bg-white/5 text-[10px] uppercase text-[var(--text-muted)] font-bold tracking-widest">
+                    <tr>
+                        <th className="px-6 py-4">Test Name</th>
+                        <th className="px-6 py-4">Value</th>
+                        <th className="px-6 py-4 hidden sm:table-cell">Range</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4 hidden md:table-cell">Insight</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--glass-border)]">
+                    {result.tests.map((test: any, i: number) => (
+                        <tr key={i} className="hover:bg-white/5 transition-colors">
+                            <td className="px-6 py-4 font-bold text-[var(--text-main)]">{test.testName}</td>
+                            <td className="px-6 py-4 font-mono text-purple-400">{test.value} <span className="text-[var(--text-muted)] text-xs">{test.unit}</span></td>
+                            <td className="px-6 py-4 text-[var(--text-muted)] font-mono text-xs hidden sm:table-cell">{test.referenceRange}</td>
+                            <td className="px-6 py-4">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${test.status === 'Normal' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${test.status === 'Normal' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                                    {test.status}
+                                </span>
+                            </td>
+                            <td className="px-6 py-4 text-[var(--text-muted)] text-xs hidden md:table-cell max-w-xs truncate" title={test.interpretation}>{test.interpretation}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+            <p className="text-[10px] text-[var(--text-muted)] mt-4 text-center opacity-50">{result.disclaimer}</p>
+    </div>
+);
+
 
 // --- COMPONENTS ---
 
@@ -274,45 +454,12 @@ const VisualDiagnosisScreen = ({ onAnalyze, isLoading, result, error }: any) => 
                             <p className="text-lg tracking-widest uppercase font-bold opacity-50">Awaiting Input</p>
                         </div>
                     ) : (
-                        <div className="space-y-8 animate-scale-in relative z-10">
-                             <div className="flex justify-end no-print">
+                        <>
+                            <div className="flex justify-end no-print">
                                 <button onClick={handlePrint} className="text-pink-400 flex items-center gap-2 hover:text-white font-bold uppercase text-xs tracking-widest transition-colors"><DocumentTextIcon className="w-4 h-4"/> Print Report</button>
                             </div>
-                            <div className="flex justify-between items-start border-b border-[var(--glass-border)] pb-6">
-                                <div>
-                                    <div className="text-xs text-pink-400 font-mono mb-1 uppercase tracking-wider font-bold">Analysis Complete</div>
-                                    <h3 className="text-3xl font-black text-[var(--text-main)]">{result.conditionName}</h3>
-                                    <p className="text-[var(--text-muted)] text-sm mt-1 flex items-center gap-2"><div className="w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_10px_#ec4899]"></div> {result.probability}</p>
-                                </div>
-                                <div className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide border ${result.severity === 'Critical' || result.severity === 'High' ? 'bg-red-500/10 border-red-500/30 text-red-400 shadow-red-500/20' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'}`}>
-                                    {result.severity} Severity
-                                </div>
-                            </div>
-                            
-                            <p className="text-[var(--text-main)] leading-relaxed text-lg font-light">{result.description}</p>
-                            
-                            <div>
-                                <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Visual Indicators</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {result.visualCharacteristics.map((vc: string, i: number) => (
-                                        <span key={i} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-sm text-[var(--text-main)] font-medium">{vc}</span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/5 p-6 rounded-2xl border border-pink-500/20">
-                                <h4 className="text-pink-400 font-bold mb-4 flex items-center gap-2 text-xs uppercase tracking-widest"><ShieldCheckIcon className="w-5 h-5"/> Protocol Recommendation</h4>
-                                <ul className="space-y-3">
-                                    {result.recommendations.map((r: string, i: number) => (
-                                        <li key={i} className="flex items-start gap-3 text-[var(--text-main)] text-sm">
-                                            <span className="mt-1.5 w-1.5 h-1.5 bg-pink-500 rounded-full flex-shrink-0"></span>
-                                            {r}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <p className="text-[10px] text-[var(--text-muted)] mt-4 text-center opacity-50">{result.disclaimer}</p>
-                        </div>
+                            <VisualReport result={result} />
+                        </>
                     )}
                 </div>
             </div>
@@ -379,39 +526,12 @@ const RxScannerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
                             <p className="text-lg tracking-widest uppercase font-bold opacity-50">Awaiting Scan</p>
                         </div>
                     ) : (
-                        <div className="space-y-8 animate-scale-in relative z-10">
-                            <div className="flex justify-between items-center border-b border-[var(--glass-border)] pb-4 no-print">
-                                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Extracted Medications</h3>
+                        <>
+                            <div className="flex justify-end items-center border-b border-[var(--glass-border)] pb-4 no-print">
                                 <button onClick={handlePrint} className="text-emerald-400 hover:text-white transition-colors flex items-center gap-1 font-bold text-xs uppercase tracking-widest"><DocumentTextIcon className="w-4 h-4"/> Print</button>
                             </div>
-                            <div className="space-y-4">
-                                {result.medications.map((med: any, i: number) => (
-                                    <div key={i} className="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--glass-border)] hover:border-emerald-500/30 transition-colors">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h4 className="font-bold text-[var(--text-main)] text-xl">{med.name}</h4>
-                                            <span className="text-xs font-mono bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded border border-emerald-500/20">{med.dosage}</span>
-                                        </div>
-                                        <div className="text-sm text-[var(--text-muted)] mb-3 flex items-center gap-2"><ArrowPathIcon className="w-3 h-3"/> {med.frequency}</div>
-                                        <div className="text-sm text-[var(--text-muted)] bg-black/20 p-3 rounded-lg border border-white/5 italic">
-                                            <span className="text-emerald-500 not-italic font-semibold mr-1">Purpose:</span> {med.purpose}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            
-                            <div className="bg-emerald-900/10 p-6 rounded-2xl border border-emerald-500/10">
-                                <h4 className="font-bold text-[var(--text-main)] mb-3 flex items-center gap-2 text-sm uppercase tracking-widest"><InfoIcon className="w-4 h-4 text-emerald-400"/> Patient Instructions</h4>
-                                <ul className="space-y-2">
-                                    {result.patientInstructions.map((inst: string, i: number) => (
-                                        <li key={i} className="text-sm text-[var(--text-muted)] flex items-start gap-3">
-                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></span>
-                                            {inst}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                            <p className="text-[10px] text-[var(--text-muted)] text-center opacity-50">{result.disclaimer}</p>
-                        </div>
+                            <RxReport result={result} />
+                        </>
                      )}
                 </div>
             </div>
@@ -468,46 +588,12 @@ const ReportAnalyzerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
                             <p className="text-lg tracking-widest uppercase font-bold opacity-50">No Data Found</p>
                         </div>
                     ) : (
-                        <div className="space-y-8 animate-scale-in">
-                            <div className="flex justify-end no-print">
+                        <>
+                            <div className="flex justify-end no-print mb-4">
                                 <button onClick={handlePrint} className="text-purple-400 flex items-center gap-2 font-bold uppercase text-xs tracking-widest hover:text-white transition-colors"><DocumentTextIcon className="w-4 h-4"/> Print Report</button>
                             </div>
-                            <div className="bg-gradient-to-r from-purple-900/20 to-indigo-900/20 p-6 rounded-2xl border border-white/5">
-                                <h3 className="text-xs font-bold text-purple-300 uppercase tracking-widest mb-3">Executive Summary</h3>
-                                <p className="text-slate-200 leading-relaxed font-light text-lg">{result.summary}</p>
-                            </div>
-                            
-                            <div className="overflow-hidden rounded-2xl border border-[var(--glass-border)]">
-                                <table className="w-full text-left text-sm text-[var(--text-muted)]">
-                                    <thead className="bg-white/5 text-[10px] uppercase text-[var(--text-muted)] font-bold tracking-widest">
-                                        <tr>
-                                            <th className="px-6 py-4">Test Name</th>
-                                            <th className="px-6 py-4">Value</th>
-                                            <th className="px-6 py-4 hidden sm:table-cell">Range</th>
-                                            <th className="px-6 py-4">Status</th>
-                                            <th className="px-6 py-4 hidden md:table-cell">Insight</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[var(--glass-border)]">
-                                        {result.tests.map((test: any, i: number) => (
-                                            <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                <td className="px-6 py-4 font-bold text-[var(--text-main)]">{test.testName}</td>
-                                                <td className="px-6 py-4 font-mono text-purple-400">{test.value} <span className="text-[var(--text-muted)] text-xs">{test.unit}</span></td>
-                                                <td className="px-6 py-4 text-[var(--text-muted)] font-mono text-xs hidden sm:table-cell">{test.referenceRange}</td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${test.status === 'Normal' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${test.status === 'Normal' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                                                        {test.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-[var(--text-muted)] text-xs hidden md:table-cell max-w-xs truncate" title={test.interpretation}>{test.interpretation}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                             <p className="text-[10px] text-[var(--text-muted)] mt-4 text-center opacity-50">{result.disclaimer}</p>
-                        </div>
+                            <LabReportView result={result} />
+                        </>
                     )}
                 </div>
             </div>
@@ -618,6 +704,8 @@ const PraxisChatScreen = () => {
 const HistoryScreen = () => {
     const [history, setHistory] = useState<AnalysisRecord[]>([]);
     const [selectedRecord, setSelectedRecord] = useState<AnalysisRecord | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'type'>('newest');
 
     useEffect(() => {
         loadHistory();
@@ -636,7 +724,24 @@ const HistoryScreen = () => {
         setHistory(updated);
         localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
         if (selectedRecord?.id === id) setSelectedRecord(null);
+        // Dispatch event to update dashboard analytics immediately
+        window.dispatchEvent(new Event('historyUpdated'));
     };
+
+    // --- SORT & FILTER LOGIC ---
+    const filteredHistory = useMemo(() => {
+        let filtered = history.filter(h => 
+            h.summary.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            h.type.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        return filtered.sort((a, b) => {
+            if (sortOrder === 'newest') return new Date(b.date).getTime() - new Date(a.date).getTime();
+            if (sortOrder === 'oldest') return new Date(a.date).getTime() - new Date(b.date).getTime();
+            if (sortOrder === 'type') return a.type.localeCompare(b.type);
+            return 0;
+        });
+    }, [history, searchTerm, sortOrder]);
 
     const getIcon = (type: string) => {
         switch(type) {
@@ -648,63 +753,115 @@ const HistoryScreen = () => {
         }
     };
 
+    // --- RENDER SELECTED RESULT ---
+    const renderResult = (record: AnalysisRecord) => {
+        switch(record.type) {
+            case 'symptom': return <SymptomReport data={record.intakeData} result={record.result} />;
+            case 'visual': return <VisualReport result={record.result} />;
+            case 'rx': return <RxReport result={record.result} />;
+            case 'report': return <LabReportView result={record.result} />;
+            default: return (
+                <div className="p-4 bg-white/5 rounded-lg font-mono text-xs">
+                    <pre>{JSON.stringify(record.result, null, 2)}</pre>
+                </div>
+            );
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto p-4 md:p-8 animate-fade-in mb-20">
-            <div className="mb-8 no-print">
-                <h2 className="text-4xl font-black text-[var(--text-main)] flex items-center gap-3 tracking-tight">
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Medical Records</span>
-                </h2>
-                <p className="text-[var(--text-muted)] mt-2 font-light">Encrypted local history storage.</p>
+            <div className="mb-8 no-print flex flex-col md:flex-row justify-between items-end gap-4">
+                <div>
+                    <h2 className="text-4xl font-black text-[var(--text-main)] flex items-center gap-3 tracking-tight">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Medical Records</span>
+                    </h2>
+                    <p className="text-[var(--text-muted)] mt-2 font-light">Encrypted local history storage.</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-1 space-y-4 no-print">
-                    {history.length === 0 ? (
-                        <div className="p-8 text-center text-[var(--text-muted)] glass-panel rounded-2xl font-mono text-sm">NO RECORDS FOUND</div>
-                    ) : (
-                        history.map(record => (
-                            <div 
-                                key={record.id} 
-                                onClick={() => setSelectedRecord(record)}
-                                className={`p-4 rounded-xl border cursor-pointer transition-all group relative ${selectedRecord?.id === record.id ? 'bg-white/10 border-cyan-500/50 shadow-lg' : 'glass-panel border-[var(--glass-border)] hover:border-white/20'}`}
+                {/* LIST & CONTROLS */}
+                <div className="md:col-span-1 space-y-4 no-print flex flex-col h-[calc(100vh-250px)]">
+                    
+                    {/* SEARCH & SORT TOOLBAR */}
+                    <div className="bg-[var(--bg-secondary)] p-3 rounded-xl border border-[var(--glass-border)] space-y-3">
+                        <div className="relative">
+                            <MagnifyingGlassIcon className="absolute left-3 top-2.5 w-4 h-4 text-[var(--text-muted)]" />
+                            <input 
+                                type="text" 
+                                placeholder="Search records..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-black/20 border border-[var(--glass-border)] rounded-lg pl-9 pr-3 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:border-amber-500/50"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase font-bold text-[var(--text-muted)]">Sort:</span>
+                            <select 
+                                value={sortOrder} 
+                                onChange={(e) => setSortOrder(e.target.value as any)}
+                                className="bg-black/20 border border-[var(--glass-border)] text-[var(--text-main)] text-xs rounded px-2 py-1 flex-grow focus:outline-none"
                             >
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="flex items-center gap-2">
-                                        {getIcon(record.type)}
-                                        <span className="font-bold text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{record.type}</span>
-                                    </div>
-                                    <button onClick={(e) => deleteRecord(record.id, e)} className="text-red-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-500 rounded"><TrashIcon className="w-4 h-4"/></button>
-                                </div>
-                                <h4 className="text-[var(--text-main)] font-bold text-sm truncate">{record.summary}</h4>
-                                <div className="text-[10px] text-[var(--text-muted)] mt-2 font-mono">{new Date(record.date).toLocaleString()}</div>
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="type">Type (A-Z)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* SCROLLABLE LIST */}
+                    <div className="overflow-y-auto space-y-3 pr-2 flex-grow">
+                        {filteredHistory.length === 0 ? (
+                            <div className="p-8 text-center text-[var(--text-muted)] glass-panel rounded-2xl font-mono text-sm border-dashed border-2 border-[var(--glass-border)] opacity-60">
+                                {searchTerm ? "NO MATCHES FOUND" : "NO RECORDS SAVED"}
                             </div>
-                        ))
-                    )}
+                        ) : (
+                            filteredHistory.map(record => (
+                                <div 
+                                    key={record.id} 
+                                    onClick={() => setSelectedRecord(record)}
+                                    className={`p-4 rounded-xl border cursor-pointer transition-all group relative ${selectedRecord?.id === record.id ? 'bg-white/10 border-amber-500/50 shadow-lg' : 'glass-panel border-[var(--glass-border)] hover:border-white/20'}`}
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex items-center gap-2">
+                                            {getIcon(record.type)}
+                                            <span className="font-bold text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{record.type}</span>
+                                        </div>
+                                        <button onClick={(e) => deleteRecord(record.id, e)} className="text-red-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all p-1 hover:bg-red-500 rounded" title="Delete Record">
+                                            <TrashIcon className="w-4 h-4"/>
+                                        </button>
+                                    </div>
+                                    <h4 className="text-[var(--text-main)] font-bold text-sm truncate">{record.summary}</h4>
+                                    <div className="text-[10px] text-[var(--text-muted)] mt-2 font-mono flex justify-between">
+                                        <span>{new Date(record.date).toLocaleDateString()}</span>
+                                        <span>{new Date(record.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
 
+                {/* DETAIL VIEW */}
                 <div className="md:col-span-2">
                     {selectedRecord ? (
                         <div className="glass-panel rounded-3xl p-6 border border-[var(--glass-border)] h-full min-h-[500px] overflow-y-auto print:overflow-visible print:h-auto print:max-h-none">
                              <div className="flex justify-end mb-4 no-print">
-                                <button onClick={handlePrint} className="flex items-center gap-2 text-cyan-400 hover:text-white font-bold uppercase text-xs tracking-widest transition-colors"><DocumentTextIcon className="w-4 h-4"/> Print Record</button>
+                                <button onClick={handlePrint} className="flex items-center gap-2 text-amber-400 hover:text-white font-bold uppercase text-xs tracking-widest transition-colors"><DocumentTextIcon className="w-4 h-4"/> Print Record</button>
                              </div>
                              <div id="printable-area" className="print-only-visible print:overflow-visible print:h-auto print:max-h-none">
-                                <div className="border-b border-[var(--glass-border)] pb-4 mb-4">
-                                    <h3 className="text-2xl font-bold text-[var(--text-main)]">{selectedRecord.summary}</h3>
-                                    <p className="text-[var(--text-muted)] text-xs font-mono mt-1">ID: {selectedRecord.id} • {new Date(selectedRecord.date).toLocaleString()}</p>
+                                <div className="border-b border-[var(--glass-border)] pb-2 mb-6">
+                                    <p className="text-[var(--text-muted)] text-[10px] font-mono mb-1 uppercase tracking-widest">RECORD ID: {selectedRecord.id}</p>
+                                    <h3 className="text-xl font-bold text-[var(--text-main)]">{selectedRecord.summary}</h3>
                                 </div>
-                                <div className="prose prose-invert max-w-none">
-                                    <pre className="whitespace-pre-wrap font-mono text-[var(--text-main)] text-xs leading-relaxed bg-black/30 p-4 rounded-xl border border-white/5">
-                                        {JSON.stringify(selectedRecord.result, null, 2)}
-                                    </pre>
-                                </div>
+                                {renderResult(selectedRecord)}
                              </div>
                         </div>
                     ) : (
                         <div className="h-full flex items-center justify-center text-[var(--text-muted)] glass-panel rounded-3xl border border-[var(--glass-border)] min-h-[300px]">
                             <div className="text-center opacity-50">
                                 <ArchiveBoxIcon className="w-12 h-12 mx-auto mb-4"/>
-                                <p className="text-xs font-bold uppercase tracking-widest">Select a record</p>
+                                <p className="text-xs font-bold uppercase tracking-widest">Select a record to view details</p>
                             </div>
                         </div>
                     )}
@@ -750,6 +907,7 @@ export default function App() {
         if(storedMode) setAppMode(storedMode);
         loadStats();
         window.addEventListener('historyUpdated', loadStats);
+        return () => window.removeEventListener('historyUpdated', loadStats);
     }, []);
 
     const loadStats = () => {
@@ -793,7 +951,7 @@ export default function App() {
             const res = await getAnalysis(data);
             setAnalysisResult(res);
             setIntakeData(data);
-            saveHistory('symptom', res, `Symptom: ${data.primaryBodyPart}`);
+            saveHistory('symptom', res, `Symptom: ${data.primaryBodyPart}`, data);
         } catch (e: any) { setCheckerError(e.message); } 
         finally { setCheckerLoading(false); }
     };
@@ -927,61 +1085,7 @@ export default function App() {
                                 </div>
                                 
                                 <div id="printable-area" className="glass-panel p-8 rounded-3xl border border-[var(--glass-border)] print-only-visible print:overflow-visible print:h-auto print:max-h-none border-t border-cyan-500/20">
-                                    <div className="flex justify-between items-end border-b border-[var(--glass-border)] pb-6 mb-8">
-                                        <div>
-                                            <h2 className="text-3xl font-black text-[var(--text-main)] tracking-tight">Clinical Report</h2>
-                                            <p className="text-[var(--text-muted)] font-mono text-xs mt-1">PATIENT: {intakeData.patientInfo.name.toUpperCase()}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <PraxisLogo className="w-10 h-10 ml-auto mb-2"/>
-                                            <div className="text-sm font-black text-[var(--text-main)]">PRAXIS AI</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="grid gap-6">
-                                        <div className="space-y-4">
-                                            <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Detected Conditions</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {analysisResult.conditions.map((c,i) => (
-                                                    <div key={i} className="bg-[var(--bg-secondary)] p-6 rounded-2xl border border-[var(--glass-border)] hover:border-cyan-500/30 transition-all">
-                                                        <h3 className="font-bold text-xl text-[var(--text-main)] mb-2">{c.name}</h3>
-                                                        <p className="text-[var(--text-muted)] text-sm leading-relaxed">{c.description}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                                            <div className="space-y-4">
-                                                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Suggested Treatments</h3>
-                                                 <div className="space-y-3">
-                                                    {analysisResult.prescriptions.map((p,i) => (
-                                                        <div key={i} className="bg-[var(--bg-secondary)] p-4 rounded-xl border border-[var(--glass-border)]">
-                                                            <div className="flex justify-between">
-                                                                <span className="font-bold text-[var(--text-main)]">{p.name}</span>
-                                                                <span className="text-xs font-mono text-emerald-400 border border-emerald-500/20 px-1 rounded">{p.dosage}</span>
-                                                            </div>
-                                                            <p className="text-xs text-[var(--text-muted)] mt-2">{p.purpose}</p>
-                                                        </div>
-                                                    ))}
-                                                 </div>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <h3 className="text-xs font-bold text-purple-400 uppercase tracking-widest">Lifestyle Protocols</h3>
-                                                 <ul className="space-y-3">
-                                                    {analysisResult.lifestyleAdvice.map((l,i) => (
-                                                        <li key={i} className="flex gap-3 text-[var(--text-main)] text-sm p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--glass-border)]">
-                                                            <CheckIcon className="w-5 h-5 text-purple-500 flex-shrink-0"/>
-                                                            {l.text}
-                                                        </li>
-                                                    ))}
-                                                 </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p className="text-[10px] text-[var(--text-muted)] mt-8 pt-4 border-t border-[var(--glass-border)] text-center uppercase tracking-widest opacity-50">
-                                        Generated by AI • Not a Medical Diagnosis
-                                    </p>
+                                    <SymptomReport data={intakeData} result={analysisResult} />
                                 </div>
                             </div>
                         ) : (
