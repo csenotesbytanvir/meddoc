@@ -1023,8 +1023,8 @@ export default function App() {
             <div className="fixed inset-0 z-0 pointer-events-none transition-colors duration-500 no-print">
                  {theme === 'default' && (
                      <>
-                        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px]"></div>
-                        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-900/10 rounded-full blur-[120px]"></div>
+                        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-900/20 rounded-full blur-[120px] animate-fade-in"></div>
+                        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-900/10 rounded-full blur-[120px] animate-fade-in"></div>
                      </>
                  )}
             </div>

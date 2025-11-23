@@ -44,6 +44,7 @@ export interface IntakeData {
     symptoms: Symptom[];
 }
 
+// NEW: For History/CRUD
 export interface AnalysisRecord {
   id: string;
   date: string;
