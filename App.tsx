@@ -9,7 +9,7 @@ import {
     SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, PraxisLogo, ArchiveBoxIcon, KeyIcon, 
     Cog6ToothIcon, WifiSlashIcon, TrashIcon, MagnifyingGlassIcon, ChartBarIcon, 
     CameraIcon, CloudArrowUpIcon, PhotoIcon, ChatBubbleLeftRightIcon, PaperAirplaneIcon,
-    SunIcon, MoonIcon
+    SunIcon, MoonIcon, Bars3Icon
 } from './components/Icons';
 import { getAnalysis, analyzeDermatology, analyzePrescription, analyzeLabReport, chatWithPraxis } from './api';
 
@@ -720,6 +720,7 @@ export default function App() {
     const [showLanding, setShowLanding] = useState(true);
     const [nav, setNav] = useState<NavModule>('dashboard');
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [appMode, setAppMode] = useState<AppMode>('live');
     const [theme, setTheme] = useState<ThemeMode>('default');
     const [apiKeyError, setApiKeyError] = useState<string | null>(null);
@@ -779,6 +780,11 @@ export default function App() {
         document.body.className = t === 'default' ? '' : `theme-${t}`;
     };
 
+    const handleNavChange = (n: NavModule) => {
+        setNav(n);
+        setMobileMenuOpen(false); // Close mobile menu on selection
+    };
+
     // --- HANDLERS ---
     
     const runSymptomCheck = async (data: IntakeData) => {
@@ -824,35 +830,46 @@ export default function App() {
     };
 
     // --- NAVIGATION COMPONENT ---
-    const Sidebar = () => (
-        <div className="hidden md:flex flex-col w-72 glass-panel border-r border-[var(--glass-border)] h-screen fixed left-0 top-0 overflow-y-auto z-40 no-print">
-            <div className="p-8 flex items-center gap-3 mb-4">
+    
+    const NavButton = ({ id, icon, label, onClick, activeClass = "bg-white/5 text-white border border-white/10 shadow-lg" }: any) => (
+        <button 
+            onClick={onClick || (() => setNav(id))}
+            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${nav === id ? activeClass : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-main)]'}`}
+        >
+            {React.cloneElement(icon, { className: `w-5 h-5 z-10 ${nav === id ? 'text-inherit' : 'text-[var(--text-muted)] group-hover:text-cyan-400 transition-colors'}` })}
+            <span className="font-bold text-sm z-10 tracking-wide">{label}</span>
+        </button>
+    );
+
+    const SidebarContent = ({ isMobile = false }) => (
+        <>
+             <div className="p-8 flex items-center gap-3 mb-4">
                 <PraxisLogo className="w-8 h-8" />
                 <span className="text-2xl font-black tracking-tighter text-white">PRAXIS</span>
             </div>
             
             <nav className="flex-1 px-4 space-y-2">
-                <NavButton id="dashboard" icon={<ChartBarIcon/>} label="Overview" />
+                <NavButton id="dashboard" icon={<ChartBarIcon/>} label="Overview" onClick={() => handleNavChange('dashboard')} />
                 
                 <div className="px-4 py-3 mt-6">
                     <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest opacity-70">Diagnostics</span>
                 </div>
                 
-                <NavButton id="symptom" icon={<UserCircleIcon/>} label="Symptom Checker" />
-                <NavButton id="visual" icon={<PhotoIcon/>} label="Dermatology AI" />
-                <NavButton id="rx" icon={<DocumentTextIcon/>} label="Rx Scanner" />
-                <NavButton id="report" icon={<ClipboardDocumentListIcon/>} label="Lab Intelligence" />
+                <NavButton id="symptom" icon={<UserCircleIcon/>} label="Symptom Checker" onClick={() => handleNavChange('symptom')} />
+                <NavButton id="visual" icon={<PhotoIcon/>} label="Dermatology AI" onClick={() => handleNavChange('visual')} />
+                <NavButton id="rx" icon={<DocumentTextIcon/>} label="Rx Scanner" onClick={() => handleNavChange('rx')} />
+                <NavButton id="report" icon={<ClipboardDocumentListIcon/>} label="Lab Intelligence" onClick={() => handleNavChange('report')} />
                 
                 <div className="px-4 py-3 mt-6">
                     <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest opacity-70">Core System</span>
                 </div>
                 
-                <NavButton id="praxis" icon={<SparklesIcon/>} label="Praxis Chat" activeClass="bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/20 border border-white/10" />
-                <NavButton id="history" icon={<ArchiveBoxIcon/>} label="Records" />
+                <NavButton id="praxis" icon={<SparklesIcon/>} label="Praxis Chat" onClick={() => handleNavChange('praxis')} activeClass="bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/20 border border-white/10" />
+                <NavButton id="history" icon={<ArchiveBoxIcon/>} label="Records" onClick={() => handleNavChange('history')} />
             </nav>
 
             <div className="p-4 mt-auto bg-[var(--glass-bg)] backdrop-blur-sm border-t border-[var(--glass-border)]">
-                <button onClick={() => setSettingsOpen(true)} className="flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all p-3 w-full rounded-xl hover:bg-[var(--bg-secondary)] group">
+                <button onClick={() => { setSettingsOpen(true); if(isMobile) setMobileMenuOpen(false); }} className="flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all p-3 w-full rounded-xl hover:bg-[var(--bg-secondary)] group">
                     <div className="bg-[var(--bg-secondary)] p-2 rounded-lg group-hover:bg-cyan-500 group-hover:text-white transition-colors">
                          <Cog6ToothIcon className="w-4 h-4" />
                     </div>
@@ -862,17 +879,7 @@ export default function App() {
                     </div>
                 </button>
             </div>
-        </div>
-    );
-
-    const NavButton = ({ id, icon, label, activeClass = "bg-white/5 text-white border border-white/10 shadow-lg" }: any) => (
-        <button 
-            onClick={() => setNav(id)}
-            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${nav === id ? activeClass : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-main)]'}`}
-        >
-            {React.cloneElement(icon, { className: `w-5 h-5 z-10 ${nav === id ? 'text-inherit' : 'text-[var(--text-muted)] group-hover:text-cyan-400 transition-colors'}` })}
-            <span className="font-bold text-sm z-10 tracking-wide">{label}</span>
-        </button>
+        </>
     );
 
     // --- CONTENT RENDERER ---
@@ -995,30 +1002,51 @@ export default function App() {
 
     return (
         <div className="min-h-screen text-[var(--text-main)] font-sans">
-            <Sidebar />
+            {/* Desktop Sidebar */}
+            <div className="hidden md:flex flex-col w-72 glass-panel border-r border-[var(--glass-border)] h-screen fixed left-0 top-0 overflow-y-auto z-40 no-print">
+                <SidebarContent />
+            </div>
             
             {/* Mobile Header */}
-            <div className="md:hidden flex items-center justify-between p-4 glass-panel border-b border-[var(--glass-border)] sticky top-0 z-30 no-print">
+            <div className="md:hidden flex items-center justify-between p-4 glass-panel border-b border-[var(--glass-border)] sticky top-0 z-30 no-print bg-[var(--bg-main)]/90 backdrop-blur-md">
+                <button onClick={() => setMobileMenuOpen(true)} className="p-2 -ml-2 text-[var(--text-muted)] active:scale-95 transition-transform">
+                    <Bars3Icon className="w-7 h-7" />
+                </button>
                 <div className="flex items-center gap-2">
-                    <PraxisLogo className="w-6 h-6" />
-                    <span className="font-black text-[var(--text-main)] text-lg tracking-tight">PRAXIS</span>
+                    <PraxisLogo className="w-8 h-8" />
+                    <span className="font-black text-[var(--text-main)] text-xl tracking-tight">PRAXIS</span>
                 </div>
-                <button onClick={() => setSettingsOpen(true)} className="text-[var(--text-muted)] bg-[var(--bg-secondary)] p-2 rounded-lg"><Cog6ToothIcon className="w-5 h-5"/></button>
+                <button onClick={() => setSettingsOpen(true)} className="text-[var(--text-muted)] bg-[var(--bg-secondary)] p-2 rounded-lg">
+                    <Cog6ToothIcon className="w-5 h-5"/>
+                </button>
             </div>
 
+            {/* Mobile Sidebar Overlay */}
+            {mobileMenuOpen && (
+                <div className="fixed inset-0 z-50 md:hidden animate-fade-in">
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}></div>
+                    
+                    {/* Drawer */}
+                    <div className="absolute left-0 top-0 bottom-0 w-[80%] max-w-sm glass-panel border-r border-[var(--glass-border)] flex flex-col shadow-2xl animate-scale-in origin-left bg-[var(--bg-main)]">
+                         <div className="absolute top-4 right-4">
+                             <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-[var(--text-muted)] hover:text-white bg-[var(--bg-secondary)] rounded-full">
+                                <XMarkIcon className="w-6 h-6"/>
+                             </button>
+                         </div>
+                         <SidebarContent isMobile={true} />
+                    </div>
+                </div>
+            )}
+
             {/* Main Content Area */}
-            <div className="md:ml-72 min-h-screen transition-all duration-300 relative z-10">
+            <div className="md:ml-72 min-h-screen transition-all duration-300 relative z-10 pb-12">
                 {renderContent()}
             </div>
 
             <DisclaimerBanner />
 
-            {/* Bottom Nav for Mobile */}
-            <div className="md:hidden fixed bottom-12 left-0 w-full glass-panel border-t border-[var(--glass-border)] flex justify-around p-4 z-30 safe-area-pb no-print backdrop-blur-xl">
-                <button onClick={() => setNav('dashboard')} className={`p-2 rounded-xl transition-all ${nav === 'dashboard' ? 'text-cyan-400' : 'text-[var(--text-muted)]'}`}><ChartBarIcon className="w-6 h-6"/></button>
-                <button onClick={() => setNav('symptom')} className={`p-2 rounded-xl transition-all ${nav === 'symptom' ? 'text-cyan-400' : 'text-[var(--text-muted)]'}`}><UserCircleIcon className="w-6 h-6"/></button>
-                <button onClick={() => setNav('praxis')} className={`p-2 rounded-xl transition-all ${nav === 'praxis' ? 'text-cyan-400' : 'text-[var(--text-muted)]'}`}><SparklesIcon className="w-6 h-6"/></button>
-            </div>
+            {/* Removed the incomplete bottom navigation bar entirely to prefer the Sidebar Overlay */}
 
             {settingsOpen && <SettingsModal onSaveApiKey={handleApiKeySave} initialKey={localStorage.getItem(API_KEY_STORAGE_KEY)} apiKeyError={apiKeyError} currentMode={appMode} onModeChange={(m) => {setAppMode(m); localStorage.setItem(APP_MODE_STORAGE_KEY, m);}} theme={theme} onThemeChange={handleThemeChange} onClose={() => setSettingsOpen(false)} />}
         </div>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-// BRAND ICON: PRAXIS
+// BRAND ICON: PRAXIS (Redesigned: Medical Cross + Neural Node)
 export const PraxisLogo = ({ className }: { className?: string }) => (
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className || "w-10 h-10"}>
         <defs>
@@ -10,28 +10,36 @@ export const PraxisLogo = ({ className }: { className?: string }) => (
                 <stop offset="50%" stopColor="#8b5cf6" />
                 <stop offset="100%" stopColor="#ec4899" />
             </linearGradient>
-            <linearGradient id="praxis-glow" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#22d3ee" />
-                <stop offset="100%" stopColor="#6366f1" />
-            </linearGradient>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
         </defs>
         
-        {/* Outer Hexagon */}
-        <path d="M50 5 L90 27.5 L90 72.5 L50 95 L10 72.5 L10 27.5 Z" stroke="url(#praxis-grad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Medical Cross Base */}
+        <g filter="url(#glow)">
+            <rect x="38" y="10" width="24" height="80" rx="8" fill="url(#praxis-grad)" opacity="0.9"/>
+            <rect x="10" y="38" width="80" height="24" rx="8" fill="url(#praxis-grad)" opacity="0.9"/>
+        </g>
         
-        {/* Inner Core */}
-        <path d="M50 30 L70 40 L70 60 L50 70 L30 60 L30 40 Z" fill="url(#praxis-glow)" opacity="0.8" />
+        {/* Neural Connections / Tech Overlay */}
+        <path d="M50 15 V35 M50 65 V85 M15 50 H35 M65 50 H85" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
         
-        {/* Connection Nodes */}
-        <circle cx="50" cy="5" r="4" fill="#fff" />
-        <circle cx="90" cy="27.5" r="4" fill="#fff" />
-        <circle cx="90" cy="72.5" r="4" fill="#fff" />
-        <circle cx="50" cy="95" r="4" fill="#fff" />
-        <circle cx="10" cy="72.5" r="4" fill="#fff" />
-        <circle cx="10" cy="27.5" r="4" fill="#fff" />
+        {/* Central Core */}
+        <circle cx="50" cy="50" r="14" fill="#0f0c1d" stroke="url(#praxis-grad)" strokeWidth="3" />
+        <circle cx="50" cy="50" r="6" fill="white" />
         
-        {/* Central Spark */}
-        <circle cx="50" cy="50" r="8" fill="#fff" />
+        {/* Orbiting Nodes */}
+        <circle cx="20" cy="20" r="3" fill="#22d3ee" opacity="0.8" />
+        <circle cx="80" cy="80" r="3" fill="#ec4899" opacity="0.8" />
+        <circle cx="80" cy="20" r="3" fill="#8b5cf6" opacity="0.8" />
+        <circle cx="20" cy="80" r="3" fill="#ffffff" opacity="0.8" />
+    </svg>
+);
+
+export const Bars3Icon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
     </svg>
 );
 
