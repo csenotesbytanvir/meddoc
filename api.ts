@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { IntakeData, AnalysisResult, VisualDiagnosisResult, RxScannerResult, LabReportResult } from './types';
 import { API_KEY_STORAGE_KEY } from "./constants";
@@ -229,7 +228,7 @@ export async function analyzeLabReport(imageBase64: string): Promise<LabReportRe
     return callGemini("gemini-2.5-flash", prompt, labReportSchema, imagePart);
 }
 
-export async function chatWithPraxis(history: {role: 'user' | 'model', text: string}[], message: string): Promise<string> {
+export async function chatWithPraxis(history: {role: 'user' | 'model', text: string}[], message: string, imageBase64?: string): Promise<string> {
     try {
         const ai = getGenAIClient();
         
@@ -245,7 +244,13 @@ export async function chatWithPraxis(history: {role: 'user' | 'model', text: str
             }
         });
 
-        const result = await chat.sendMessage({ message });
+        const msgParts: any[] = [];
+        if (imageBase64) {
+            msgParts.push({ inlineData: { mimeType: 'image/jpeg', data: imageBase64 } });
+        }
+        msgParts.push({ text: message });
+
+        const result = await chat.sendMessage({ message: msgParts });
         return result.text || "I apologize, I couldn't process that request.";
     } catch (e: any) {
         // Return friendly message directly in chat instead of throwing

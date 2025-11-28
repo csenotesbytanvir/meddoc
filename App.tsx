@@ -9,7 +9,7 @@ import {
     SkinBodyIcon, UrinaryBodyIcon, BodyIcon, InfoIcon, PraxisLogo, ArchiveBoxIcon, KeyIcon, 
     Cog6ToothIcon, WifiSlashIcon, TrashIcon, MagnifyingGlassIcon, ChartBarIcon, 
     CameraIcon, CloudArrowUpIcon, PhotoIcon, ChatBubbleLeftRightIcon, PaperAirplaneIcon,
-    SunIcon, MoonIcon, Bars3Icon
+    SunIcon, MoonIcon, Bars3Icon, ArrowLeftIcon, PaperClipIcon
 } from './components/Icons';
 import { getAnalysis, analyzeDermatology, analyzePrescription, analyzeLabReport, chatWithPraxis } from './api';
 
@@ -57,6 +57,20 @@ const saveHistory = (type: AnalysisRecord['type'], result: any, summary: string,
         console.error("Failed to save history", e);
     }
 };
+
+// --- HELPER UI ---
+
+const BackButton = ({ onClick }: { onClick: () => void }) => (
+    <button 
+        onClick={onClick} 
+        className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-main)] mb-6 transition-colors group"
+    >
+        <div className="p-2 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
+            <ArrowLeftIcon className="w-4 h-4" />
+        </div>
+        <span className="text-xs font-bold uppercase tracking-widest">Back to Dashboard</span>
+    </button>
+);
 
 // --- REUSABLE REPORT COMPONENTS (Used in Main View & History) ---
 
@@ -302,6 +316,11 @@ const SettingsModal = ({ onSaveApiKey, initialKey, apiKeyError, currentMode, onM
 }) => {
     const [apiKey, setApiKey] = useState(initialKey || '');
 
+    const handleSave = () => {
+        if (currentMode === 'live' && !apiKey.trim()) return;
+        onSaveApiKey(apiKey.trim());
+    };
+
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in no-print">
             <div className="glass-panel rounded-3xl shadow-2xl max-w-md w-full relative overflow-hidden animate-scale-in border border-white/10">
@@ -374,7 +393,7 @@ const SettingsModal = ({ onSaveApiKey, initialKey, apiKeyError, currentMode, onM
                     )}
 
                     <button 
-                        onClick={() => { if(apiKey.trim()) onSaveApiKey(apiKey.trim()); }} 
+                        onClick={handleSave} 
                         disabled={currentMode === 'live' && !apiKey.trim()}
                         className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg shadow-cyan-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 uppercase tracking-wide text-sm"
                     >
@@ -388,7 +407,7 @@ const SettingsModal = ({ onSaveApiKey, initialKey, apiKeyError, currentMode, onM
 
 // --- SUB-SCREENS ---
 
-const VisualDiagnosisScreen = ({ onAnalyze, isLoading, result, error }: any) => {
+const VisualDiagnosisScreen = ({ onAnalyze, isLoading, result, error, onBack }: any) => {
     const [image, setImage] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
 
@@ -408,6 +427,9 @@ const VisualDiagnosisScreen = ({ onAnalyze, isLoading, result, error }: any) => 
 
     return (
         <div className="max-w-6xl mx-auto p-4 sm:p-8 animate-fade-in mb-20">
+             <div className="mb-4 no-print">
+                <BackButton onClick={onBack} />
+             </div>
              <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4 no-print">
                 <div>
                     <h2 className="text-4xl font-black text-[var(--text-main)] flex items-center gap-3 tracking-tight">
@@ -467,7 +489,7 @@ const VisualDiagnosisScreen = ({ onAnalyze, isLoading, result, error }: any) => 
     );
 };
 
-const RxScannerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
+const RxScannerScreen = ({ onAnalyze, isLoading, result, error, onBack }: any) => {
     const [image, setImage] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
 
@@ -487,6 +509,9 @@ const RxScannerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
 
     return (
         <div className="max-w-6xl mx-auto p-4 sm:p-8 animate-fade-in mb-20">
+             <div className="mb-4 no-print">
+                <BackButton onClick={onBack} />
+             </div>
              <div className="mb-10 flex items-end justify-between no-print">
                 <div>
                     <h2 className="text-4xl font-black text-[var(--text-main)] flex items-center gap-3 tracking-tight">
@@ -539,7 +564,7 @@ const RxScannerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
     );
 };
 
-const ReportAnalyzerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
+const ReportAnalyzerScreen = ({ onAnalyze, isLoading, result, error, onBack }: any) => {
     const [image, setImage] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
 
@@ -559,6 +584,9 @@ const ReportAnalyzerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
 
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-8 animate-fade-in mb-20">
+            <div className="mb-4 no-print">
+                <BackButton onClick={onBack} />
+             </div>
              <div className="mb-10 no-print">
                 <h2 className="text-4xl font-black text-[var(--text-main)] flex items-center gap-3 tracking-tight">
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-500">Lab Intelligence</span>
@@ -601,28 +629,61 @@ const ReportAnalyzerScreen = ({ onAnalyze, isLoading, result, error }: any) => {
     );
 };
 
-const PraxisChatScreen = () => {
+const PraxisChatScreen = ({ onBack }: { onBack: () => void }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([
         { id: '1', role: 'model', text: 'Greetings. I am Praxis, your advanced medical intelligence unit. How may I assist with your health inquiry today?', timestamp: new Date() }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [attachment, setAttachment] = useState<{file: File, preview: string} | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if(scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }, [messages, isTyping]);
+    }, [messages, isTyping, attachment]);
+
+    const handleAttachment = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setAttachment({
+                file,
+                preview: URL.createObjectURL(file)
+            });
+        }
+    };
 
     const handleSend = async () => {
-        if (!input.trim()) return;
-        const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text: input, timestamp: new Date() };
-        setMessages(prev => [...prev, userMsg]);
+        if (!input.trim() && !attachment) return;
+        
+        let userMsg: ChatMessage = { 
+            id: Date.now().toString(), 
+            role: 'user', 
+            text: input, 
+            timestamp: new Date() 
+        };
+        
+        // Optimistic UI update
+        const displayMsg = { ...userMsg }; 
+        if(attachment) displayMsg.text = `[Image Attached] ${input}`;
+        
+        setMessages(prev => [...prev, displayMsg]);
         setInput('');
         setIsTyping(true);
 
         try {
             const historyForApi = messages.map(m => ({ role: m.role, text: m.text }));
-            const responseText = await chatWithPraxis(historyForApi, userMsg.text);
+            let imageBase64: string | undefined;
+            
+            if (attachment) {
+                 imageBase64 = await convertFileToBase64(attachment.file);
+            }
+            
+            // Clear attachment after sending
+            setAttachment(null);
+            if(fileInputRef.current) fileInputRef.current.value = '';
+
+            const responseText = await chatWithPraxis(historyForApi, userMsg.text, imageBase64);
             const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: 'model', text: responseText, timestamp: new Date() };
             setMessages(prev => [...prev, botMsg]);
         } catch (e) {
@@ -634,7 +695,10 @@ const PraxisChatScreen = () => {
     };
 
     return (
-        <div className="h-[calc(100vh-100px)] flex flex-col max-w-6xl mx-auto p-4 animate-fade-in">
+        <div className="h-[calc(100vh-80px)] flex flex-col max-w-6xl mx-auto p-4 animate-fade-in">
+             <div className="mb-2 no-print">
+                <BackButton onClick={onBack} />
+             </div>
             <div className="flex-grow glass-panel border border-[var(--glass-border)] rounded-3xl overflow-hidden flex flex-col shadow-2xl relative">
                 {/* Chat Header */}
                 <div className="p-4 border-b border-[var(--glass-border)] bg-[var(--glass-bg)] flex items-center justify-between backdrop-blur-md z-10">
@@ -658,7 +722,7 @@ const PraxisChatScreen = () => {
                     {messages.map((msg) => (
                         <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-scale-in`}>
                             <div className={`max-w-[85%] md:max-w-[70%] p-5 rounded-2xl shadow-lg relative ${msg.role === 'user' ? 'bg-gradient-to-br from-cyan-600 to-blue-700 text-white rounded-tr-sm' : 'bg-white/5 backdrop-blur-sm text-[var(--text-main)] rounded-tl-sm border border-white/10'}`}>
-                                <p className="leading-relaxed text-sm md:text-base font-light">{msg.text}</p>
+                                <p className="leading-relaxed text-sm md:text-base font-light whitespace-pre-wrap">{msg.text}</p>
                                 <span className={`text-[10px] block mt-2 text-right opacity-50 font-mono`}>{msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
                         </div>
@@ -676,21 +740,39 @@ const PraxisChatScreen = () => {
                 
                 {/* Input Area */}
                 <div className="p-4 bg-[var(--glass-bg)] border-t border-[var(--glass-border)] backdrop-blur-md z-10">
-                    <div className="flex gap-3 max-w-4xl mx-auto">
-                        <div className="relative flex-grow">
-                             <input 
-                                type="text" 
+                    {attachment && (
+                        <div className="max-w-4xl mx-auto mb-2 flex items-center gap-2 bg-[var(--bg-secondary)] p-2 rounded-lg w-fit border border-[var(--glass-border)]">
+                            <img src={attachment.preview} alt="Attachment" className="h-10 w-10 rounded object-cover" />
+                            <span className="text-xs text-[var(--text-muted)] truncate max-w-[150px]">{attachment.file.name}</span>
+                            <button onClick={() => { setAttachment(null); if(fileInputRef.current) fileInputRef.current.value=''; }} className="text-red-400 hover:text-red-300 ml-2">
+                                <XMarkIcon className="w-4 h-4"/>
+                            </button>
+                        </div>
+                    )}
+                    <div className="flex gap-3 max-w-4xl mx-auto items-end">
+                        <div className="relative flex-grow flex items-center gap-2 bg-[var(--bg-secondary)] rounded-2xl px-4 py-2 border border-[var(--glass-border)] shadow-inner">
+                             <button 
+                                onClick={() => fileInputRef.current?.click()} 
+                                className="text-[var(--text-muted)] hover:text-cyan-400 transition-colors p-2"
+                                title="Attach Image"
+                             >
+                                <PaperClipIcon className="w-5 h-5" />
+                             </button>
+                             <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleAttachment} />
+                             
+                             <textarea 
                                 value={input} 
                                 onChange={e => setInput(e.target.value)}
-                                onKeyPress={e => e.key === 'Enter' && handleSend()}
+                                onKeyPress={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                                 placeholder="Ask Praxis..." 
-                                className="w-full custom-input rounded-2xl pl-6 pr-4 py-4 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 outline-none transition-all placeholder:text-[var(--text-muted)] shadow-inner"
+                                className="w-full bg-transparent border-none focus:ring-0 outline-none text-[var(--text-main)] placeholder:text-[var(--text-muted)] resize-none py-2 max-h-32"
+                                rows={1}
                             />
                         </div>
                         <button 
                             onClick={handleSend} 
-                            disabled={!input.trim() || isTyping} 
-                            className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-4 rounded-2xl transition-all shadow-lg shadow-cyan-600/20 disabled:opacity-50 disabled:grayscale hover:scale-105 active:scale-95"
+                            disabled={(!input.trim() && !attachment) || isTyping} 
+                            className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-4 rounded-2xl transition-all shadow-lg shadow-cyan-600/20 disabled:opacity-50 disabled:grayscale hover:scale-105 active:scale-95 h-[58px] w-[58px] flex items-center justify-center flex-shrink-0"
                         >
                             <PaperAirplaneIcon className="w-6 h-6 -rotate-45 ml-0.5 mb-0.5" />
                         </button>
@@ -701,7 +783,7 @@ const PraxisChatScreen = () => {
     );
 };
 
-const HistoryScreen = () => {
+const HistoryScreen = ({ onBack }: { onBack: () => void }) => {
     const [history, setHistory] = useState<AnalysisRecord[]>([]);
     const [selectedRecord, setSelectedRecord] = useState<AnalysisRecord | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -770,6 +852,9 @@ const HistoryScreen = () => {
 
     return (
         <div className="max-w-6xl mx-auto p-4 md:p-8 animate-fade-in mb-20">
+             <div className="mb-4 no-print">
+                <BackButton onClick={onBack} />
+             </div>
             <div className="mb-8 no-print flex flex-col md:flex-row justify-between items-end gap-4">
                 <div>
                     <h2 className="text-4xl font-black text-[var(--text-main)] flex items-center gap-3 tracking-tight">
@@ -781,7 +866,7 @@ const HistoryScreen = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* LIST & CONTROLS */}
-                <div className="md:col-span-1 space-y-4 no-print flex flex-col h-[calc(100vh-250px)]">
+                <div className="md:col-span-1 space-y-4 no-print flex flex-col h-[calc(100vh-300px)]">
                     
                     {/* SEARCH & SORT TOOLBAR */}
                     <div className="bg-[var(--bg-secondary)] p-3 rounded-xl border border-[var(--glass-border)] space-y-3">
@@ -943,6 +1028,10 @@ export default function App() {
         setMobileMenuOpen(false); // Close mobile menu on selection
     };
 
+    const handleBackToDashboard = () => {
+        setNav('dashboard');
+    };
+
     // --- HANDLERS ---
     
     const runSymptomCheck = async (data: IntakeData) => {
@@ -1077,6 +1166,9 @@ export default function App() {
             case 'symptom':
                 return (
                     <div className="animate-fade-in max-w-6xl mx-auto p-4 md:p-8 mb-20">
+                        <div className="mb-4 no-print">
+                            <BackButton onClick={handleBackToDashboard} />
+                        </div>
                         {analysisResult && intakeData ? (
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center no-print">
@@ -1093,11 +1185,11 @@ export default function App() {
                         )}
                     </div>
                 );
-            case 'visual': return <VisualDiagnosisScreen onAnalyze={runVisualDiagnosis} isLoading={visualLoading} result={visualResult} error={visualError} />;
-            case 'rx': return <RxScannerScreen onAnalyze={runRxScan} isLoading={rxLoading} result={rxResult} error={rxError} />;
-            case 'report': return <ReportAnalyzerScreen onAnalyze={runReportAnalysis} isLoading={reportLoading} result={reportResult} error={reportError} />;
-            case 'praxis': return <PraxisChatScreen />;
-            case 'history': return <HistoryScreen />;
+            case 'visual': return <VisualDiagnosisScreen onAnalyze={runVisualDiagnosis} isLoading={visualLoading} result={visualResult} error={visualError} onBack={handleBackToDashboard} />;
+            case 'rx': return <RxScannerScreen onAnalyze={runRxScan} isLoading={rxLoading} result={rxResult} error={rxError} onBack={handleBackToDashboard} />;
+            case 'report': return <ReportAnalyzerScreen onAnalyze={runReportAnalysis} isLoading={reportLoading} result={reportResult} error={reportError} onBack={handleBackToDashboard} />;
+            case 'praxis': return <PraxisChatScreen onBack={handleBackToDashboard} />;
+            case 'history': return <HistoryScreen onBack={handleBackToDashboard} />;
             default: return null;
         }
     };
