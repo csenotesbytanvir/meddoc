@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { SYMPTOM_DATA, API_KEY_STORAGE_KEY, HISTORY_STORAGE_KEY, APP_MODE_STORAGE_KEY } from './constants';
 import { BodyPart, PatientInfo, Symptom, AnalysisResult, IntakeData, AnalysisRecord, VisualDiagnosisResult, RxScannerResult, LabReportResult, ChatMessage } from './types';
@@ -58,7 +57,44 @@ const saveHistory = (type: AnalysisRecord['type'], result: any, summary: string,
     }
 };
 
-// --- HELPER UI ---
+// --- HELPER COMPONENTS ---
+
+const SimpleMarkdown = ({ text }: { text: string }) => {
+    if (!text) return null;
+    
+    // Split by newlines first
+    const lines = text.split('\n');
+    
+    return (
+        <div className="space-y-1">
+            {lines.map((line, i) => {
+                // Check for bullet points
+                if (line.trim().startsWith('* ') || line.trim().startsWith('- ')) {
+                    const content = line.trim().substring(2);
+                    return (
+                        <div key={i} className="flex gap-2 ml-2">
+                            <span className="text-cyan-400 mt-1.5">•</span>
+                            <span className="flex-1">{parseInline(content)}</span>
+                        </div>
+                    );
+                }
+                // Regular paragraph
+                return <p key={i} className="min-h-[1em]">{parseInline(line)}</p>;
+            })}
+        </div>
+    );
+};
+
+const parseInline = (text: string) => {
+    // Regex to split by bold (**text**)
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={i} className="font-bold text-cyan-200">{part.slice(2, -2)}</strong>;
+        }
+        return <span key={i}>{part}</span>;
+    });
+};
 
 const BackButton = ({ onClick }: { onClick: () => void }) => (
     <button 
@@ -282,7 +318,7 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
                         Medical Intelligence
                     </p>
                     <div className="pt-2">
-                        <span className="text-sm font-mono text-slate-500">Architected by <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 font-bold">Tanvir Ahmmed</span></span>
+                        <span className="text-sm font-mono text-slate-500">Architected by <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 font-bold">Team Curadex</span></span>
                     </div>
                 </div>
                 
@@ -297,8 +333,9 @@ const LandingPage = ({ onEnter }: { onEnter: () => void }) => {
                 </div>
             </div>
 
-            <div className="absolute bottom-12 text-slate-600 text-xs font-mono tracking-widest">
-                NON-CLINICAL RESEARCH PROTOTYPE
+            <div className="absolute bottom-12 flex flex-col items-center gap-1 text-slate-600 text-[10px] font-mono tracking-widest">
+                <span>NON-CLINICAL RESEARCH PROTOTYPE</span>
+                <span>© 2025 TANVIR AHMMED</span>
             </div>
         </div>
     );
@@ -364,7 +401,7 @@ const SettingsModal = ({ onSaveApiKey, initialKey, apiKeyError, currentMode, onM
                         <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Intelligence Mode</label>
                         <div className="flex rounded-xl bg-[var(--bg-secondary)] p-1 border border-[var(--glass-border)]">
                              <button onClick={() => onModeChange('live')} className={`w-1/2 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all ${currentMode === 'live' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg' : 'text-[var(--text-muted)] hover:text-white'}`}>
-                                <SparklesIcon className="w-4 h-4"/> Live Gemini
+                                <SparklesIcon className="w-4 h-4"/> Live AI
                             </button>
                             <button onClick={() => onModeChange('mock')} className={`w-1/2 py-2 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all ${currentMode === 'mock' ? 'bg-amber-700 text-white shadow-lg' : 'text-[var(--text-muted)] hover:text-white'}`}>
                                 <WifiSlashIcon className="w-4 h-4"/> Offline
@@ -372,10 +409,20 @@ const SettingsModal = ({ onSaveApiKey, initialKey, apiKeyError, currentMode, onM
                         </div>
                     </div>
                     
+                    {currentMode === 'mock' && (
+                        <div className="bg-amber-900/20 border border-amber-500/30 p-3 rounded-xl flex gap-3 items-start">
+                            <InfoIcon className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-200 leading-relaxed">
+                                <strong className="block text-amber-400 mb-1">Functionality Limited</strong>
+                                Chat, Vision, and Live Analysis features will be disabled or return mock data. Use this mode only for UI testing.
+                            </p>
+                        </div>
+                    )}
+                    
                     {/* API Key */}
                     {currentMode === 'live' && (
                         <div className="animate-fade-in space-y-3">
-                            <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Gemini API Key</label>
+                            <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">AI Access Key (Provider)</label>
                             <div className="relative">
                                 <KeyIcon className="absolute left-3 top-3.5 w-4 h-4 text-[var(--text-muted)]" />
                                 <input 
@@ -631,7 +678,7 @@ const ReportAnalyzerScreen = ({ onAnalyze, isLoading, result, error, onBack }: a
 
 const PraxisChatScreen = ({ onBack }: { onBack: () => void }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([
-        { id: '1', role: 'model', text: 'Greetings. I am Praxis, your advanced medical intelligence unit. How may I assist with your health inquiry today?', timestamp: new Date() }
+        { id: '1', role: 'model', text: 'Hello. I am Praxis. How can I assist you with your medical questions today?', timestamp: new Date() }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -722,7 +769,9 @@ const PraxisChatScreen = ({ onBack }: { onBack: () => void }) => {
                     {messages.map((msg) => (
                         <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-scale-in`}>
                             <div className={`max-w-[85%] md:max-w-[70%] p-5 rounded-2xl shadow-lg relative ${msg.role === 'user' ? 'bg-gradient-to-br from-cyan-600 to-blue-700 text-white rounded-tr-sm' : 'bg-white/5 backdrop-blur-sm text-[var(--text-main)] rounded-tl-sm border border-white/10'}`}>
-                                <p className="leading-relaxed text-sm md:text-base font-light whitespace-pre-wrap">{msg.text}</p>
+                                <div className="leading-relaxed text-sm md:text-base font-light whitespace-pre-wrap">
+                                    {msg.role === 'model' ? <SimpleMarkdown text={msg.text} /> : msg.text}
+                                </div>
                                 <span className={`text-[10px] block mt-2 text-right opacity-50 font-mono`}>{msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
                         </div>
@@ -1237,12 +1286,15 @@ export default function App() {
 
             {/* Main Content Area */}
             <div className="md:ml-72 min-h-screen transition-all duration-300 relative z-10 pb-12">
+                {appMode === 'mock' && (
+                    <div className="bg-amber-900/40 text-amber-200 text-[10px] text-center py-1 font-mono uppercase tracking-widest border-b border-amber-500/20 no-print">
+                        ⚠️ Offline / Simulation Mode Active
+                    </div>
+                )}
                 {renderContent()}
             </div>
 
             <DisclaimerBanner />
-
-            {/* Removed the incomplete bottom navigation bar entirely to prefer the Sidebar Overlay */}
 
             {settingsOpen && <SettingsModal onSaveApiKey={handleApiKeySave} initialKey={localStorage.getItem(API_KEY_STORAGE_KEY)} apiKeyError={apiKeyError} currentMode={appMode} onModeChange={(m) => {setAppMode(m); localStorage.setItem(APP_MODE_STORAGE_KEY, m);}} theme={theme} onThemeChange={handleThemeChange} onClose={() => setSettingsOpen(false)} />}
         </div>

@@ -5,7 +5,7 @@ import { API_KEY_STORAGE_KEY } from "./constants";
 function getGenAIClient(): GoogleGenAI {
     const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
     if (!apiKey) {
-        throw new Error("Gemini API key not found. Please set it in the application settings.");
+        throw new Error("AI Access Key not found. Please set it in the application settings.");
     }
     return new GoogleGenAI({ apiKey });
 }
@@ -176,7 +176,7 @@ async function callGemini(modelName: string, prompt: string, schema: any, imageP
             config: {
                 responseMimeType: "application/json",
                 responseSchema: schema,
-                systemInstruction: "You are Praxis, an advanced medical AI architected by Tanvir Ahmmed. Your goal is to provide highly accurate, deep, and educational medical analysis. You are not a doctor. Always emphasize that results are for educational purposes only."
+                systemInstruction: "You are Praxis, an advanced medical AI architected by Team Curadex. Your goal is to provide highly accurate, deep, and educational medical analysis. You are not a doctor. Always emphasize that results are for educational purposes only."
             }
         });
         
@@ -240,7 +240,7 @@ export async function chatWithPraxis(history: {role: 'user' | 'model', text: str
                 parts: [{ text: h.text }]
             })),
             config: {
-                systemInstruction: "You are Praxis, a highly advanced, expert-level medical AI assistant. You were architected and built by Tanvir Ahmmed. Your role is to provide comprehensive, nuanced, and deeply knowledgeable medical information. Do not limit your answers to simple summaries; explain mechanisms, interpret complex queries with precision, and offer reassuring, professional guidance. You must strictly maintain your identity as Praxis by Tanvir Ahmmed. You are an educational tool, not a replacement for a doctor. Never provide a definitive diagnosis, but offer detailed educational analysis."
+                systemInstruction: "You are Praxis, a highly advanced, expert-level medical AI assistant. You were architected and built by Team Curadex. Your role is to provide comprehensive, nuanced, and deeply knowledgeable medical information. Do not limit your answers to simple summaries; explain mechanisms, interpret complex queries with precision, and offer reassuring, professional guidance. Use markdown (bold, bullet points) for readability. You are an educational tool, not a replacement for a doctor. Never provide a definitive diagnosis, but offer detailed educational analysis."
             }
         });
 
